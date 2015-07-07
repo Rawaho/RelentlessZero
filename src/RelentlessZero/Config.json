@@ -8,15 +8,15 @@
     {
         "Host":"127.0.0.1",
         "LookupPort":8081,
-        "LobbyPort":8082,
-        "BattlePort":8083,
+        "LobbyPort":8083,
+        "BattlePort":8084,
         "MaxConnections":1000,
 
         "MySql":
         {
             "Host":"127.0.0.1",
             "Port":3306,
-			"Database":"relentless_zero",
+            "Database":"relentless_zero",
             "Username":"root",
             "Password":""
         },
