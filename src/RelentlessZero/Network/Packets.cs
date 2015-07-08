@@ -39,6 +39,20 @@ namespace RelentlessZero.Network
     // Sub Packet Structures
     // ----------------------------------------------------------------
 
+    public class PacketDeck
+    {
+        [JsonProperty(PropertyName = "name")]
+        public string Name { get; set; }
+        [JsonProperty(PropertyName = "resources")]
+        public string Resources { get; set; }
+        [JsonProperty(PropertyName = "valid")]
+        public bool Valid { get; set; }
+        [JsonProperty(PropertyName = "updated")]
+        public string Updated { get; set; }
+        [JsonProperty(PropertyName = "timestamp")]
+        public uint TimeStamp { get; set; }
+    }
+
     public class PacketCard
     {
         [JsonProperty(PropertyName = "id")]
@@ -129,6 +143,13 @@ namespace RelentlessZero.Network
     {
         [JsonProperty(PropertyName = "cardTypes")]
         public List<ScrollTemplate> CardTypes { get; set; }
+    }
+
+    [Packet("DeckList", PacketDirection.Bidirectional, SessionType.Lobby)]
+    public class PacketDeckList : PacketHeader
+    {
+        [JsonProperty(PropertyName = "decks")]
+        public List<PacketDeck> Decks{ get; set; }
     }
 
     [Packet("Connect", PacketDirection.ClientToServer, SessionType.Lobby, false)]

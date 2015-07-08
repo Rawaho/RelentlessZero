@@ -30,24 +30,47 @@ namespace RelentlessZero.Network.Handlers
             var libraryView = new PacketLibraryView()
             {
                 ProfileId = session.Player.Id,
-                Cards     = new List<PacketCard>()
+                Cards = new List<PacketCard>()
             };
 
             foreach (var scrollTemplate in AssetManager.ScrollTemplateStore)
             {
                 var packetCard = new PacketCard()
                 {
-                    Id       = scrollTemplate.Entry,
-                    TypeId   = scrollTemplate.Entry,
+                    Id = scrollTemplate.Entry,
+                    TypeId = scrollTemplate.Entry,
                     Tradable = false,
-                    IsToken  = false,
-                    Level    = 0
+                    IsToken = false,
+                    Level = 0
                 };
 
                 libraryView.Cards.Add(packetCard);
             }
 
             session.Send(libraryView);
+
+        }
+
+        [PacketHandler("DeckList")]
+        public static void HandleDeckList(object packet, Session session)
+        {
+            // temporary for testing purposes
+            var toSend= new PacketDeckList()
+            {
+                Decks = new List<PacketDeck>()
+            };
+
+            var oneRandomDeck = new PacketDeck()
+            {
+                Name = "TestDeck",
+                Resources = "DECAY,ENERGY",
+                Valid = true,
+                Updated = "Blablablah",
+                TimeStamp = 10 // TODO : check if timestamp is the last deck save time
+            };
+            toSend.Decks.Add(oneRandomDeck);
+
+            session.Send(toSend);
 
         }
     }
