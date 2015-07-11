@@ -26,29 +26,13 @@ namespace RelentlessZero.Network.Handlers
         [PacketHandler("LibraryView")]
         public static void HandleLibraryView(object packet, Session session)
         {
-            // temporary for testing purposes
             var libraryView = new PacketLibraryView()
             {
                 ProfileId = session.Player.Id,
-                Cards     = new List<PacketCard>()
+                Cards     = session.Player.Scrolls
             };
 
-            foreach (var scrollTemplate in AssetManager.ScrollTemplateStore)
-            {
-                var packetCard = new PacketCard()
-                {
-                    Id       = scrollTemplate.Entry,
-                    TypeId   = scrollTemplate.Entry,
-                    Tradable = false,
-                    IsToken  = false,
-                    Level    = 0
-                };
-
-                libraryView.Cards.Add(packetCard);
-            }
-
             session.Send(libraryView);
-
         }
     }
 }

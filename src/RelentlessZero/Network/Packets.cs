@@ -39,20 +39,6 @@ namespace RelentlessZero.Network
     // Sub Packet Structures
     // ----------------------------------------------------------------
 
-    public class PacketCard
-    {
-        [JsonProperty(PropertyName = "id")]
-        public uint Id { get; set; }
-        [JsonProperty(PropertyName = "typeId")]
-        public uint TypeId { get; set; }
-        [JsonProperty(PropertyName = "tradable")]
-        public bool Tradable { get; set; }
-        [JsonProperty(PropertyName = "isToken")]
-        public bool IsToken { get; set; }
-        [JsonProperty(PropertyName = "level")]
-        public uint Level { get; set; }
-    }
-
     public class PacketFullRoom
     {
         [JsonProperty(PropertyName = "room")]
@@ -175,7 +161,7 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "profileId")]
         public uint ProfileId { get; set; }
         [JsonProperty(PropertyName = "cards")]
-        public List<PacketCard> Cards { get; set; }
+        public List<ScrollInstance> Cards { get; set; }
     }
 
     [Packet("LobbyLookup", PacketDirection.Bidirectional, SessionType.Lookup, false)]

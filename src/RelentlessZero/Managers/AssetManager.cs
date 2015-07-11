@@ -30,6 +30,9 @@ namespace RelentlessZero.Managers
     {
         public static string ScrollTemplateCache { get; set; }
 
+        private static object scrollInstanceIdLock;
+        private static ulong scrollInstanceId;
+
         // used to generate scroll templates
         private static List<AbilityTemplate> abilityTemplateStore;
         private static List<PassiveTemplate> passiveTemplateStore;
@@ -40,6 +43,8 @@ namespace RelentlessZero.Managers
 
         public static void LoadAssets()
         {
+            InitialiseAssetCounters();
+
             LoadAbilityTemplates();
             LoadPassiveTemplates();
             LoadTagTemplates();
@@ -324,6 +329,11 @@ namespace RelentlessZero.Managers
             ScrollTemplateCache = JsonConvert.SerializeObject(cardTypes);
         }
 
+        public static ScrollTemplate GetScrollTemplate(ushort entry)
+        {
+            return ScrollTemplateStore.SingleOrDefault(scroll => scroll.Entry == entry);
+        }
+
         private static AbilityTemplate GetAbilityTemplate(ushort entry)
         {
             return abilityTemplateStore.SingleOrDefault(ability => ability.Entry == entry);
@@ -339,10 +349,21 @@ namespace RelentlessZero.Managers
             return tagTemplateStore.SingleOrDefault(tag => tag.Entry == entry);
         }
 
-        // testing purposes
-        public static void GiveAllScrolls(Player player)
+        private static void InitialiseAssetCounters()
         {
+            var cardInstanceIdResult = DatabaseManager.Database.Select("SELECT MAX(`id`) FROM `scroll_instance`");
+            if (cardInstanceIdResult != null)
+            {
+                // next available scroll instance id
+                scrollInstanceIdLock = new object();
+                scrollInstanceId     = cardInstanceIdResult.Read<ulong>(0, "MAX(`id`)") + 1;
+            }
+        }
 
+        public static ulong GetNewScrollInstanceId()
+        {
+            lock (scrollInstanceIdLock)
+                return scrollInstanceId++;
         }
     }
 }

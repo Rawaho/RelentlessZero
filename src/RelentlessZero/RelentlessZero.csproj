@@ -70,6 +70,7 @@
     <Compile Include="Entities\Enums\ScrollTargetArea.cs" />
     <Compile Include="Entities\Enums\TagType.cs" />
     <Compile Include="Entities\Player.cs" />
+    <Compile Include="Entities\ScrollInstance.cs" />
     <Compile Include="Entities\ScrollTemplate.cs" />
     <Compile Include="Entities\Unit.cs" />
     <Compile Include="Entities\Units\AgingKnight.cs" />

@@ -212,8 +212,10 @@ namespace RelentlessZero.Network.Handlers
             if (player.HasFlag(PlayerFlags.FirstLogin))
             {
                 player.RemoveFlag(PlayerFlags.FirstLogin);
-                AssetManager.GiveAllScrolls(player);
+                player.GiveAllScrolls();
             }
+
+            player.LoadScrolls();
 
             // TODO: friend stuff here
 

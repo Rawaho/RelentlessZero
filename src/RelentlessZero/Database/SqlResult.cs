@@ -33,6 +33,9 @@ namespace RelentlessZero.Database
                 if (typeof(T).IsEnum)
                     return (T)Enum.ToObject(typeof(T), val);
 
+                if (val.GetType() == typeof(DBNull))
+                    return default(T);
+
                 return (T)Convert.ChangeType(val, typeof(T));
             }
         }
