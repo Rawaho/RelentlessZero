@@ -54,7 +54,7 @@ namespace RelentlessZero.Entities
         }
 
         public bool HasFlag(PlayerFlags flag) { return (Flags & flag) != 0; }
-        public void RemoveFlag(PlayerFlags flag) { Flags &= flag; }
+        public void RemoveFlag(PlayerFlags flag) { Flags &= ~flag; }
 
         public PacketRoomInfoProfile GenerateRoomInfoProfile()
         {
