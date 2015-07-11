@@ -50,6 +50,7 @@ namespace RelentlessZero.Entities
                 LobbyManager.RemovePlayer(roomName, this);
 
             SaveScrolls();
+            SavePlayer();
         }
 
         public bool HasFlag(PlayerFlags flag) { return (Flags & flag) != 0; }
@@ -158,6 +159,11 @@ namespace RelentlessZero.Entities
                      scroll.Stats.Destroyed, scroll.Stats.Heal, scroll.Stats.IdolKills, scroll.Stats.Played, scroll.Stats.Sacrificed, scroll.Stats.TotalGames,
                      scroll.Stats.UnitKills, scroll.Stats.Wins, scroll.Tradable);
             }
+        }
+
+        public void SavePlayer()
+        {
+            DatabaseManager.Database.Execute("UPDATE `account_info` SET `gold` = ?, `shards` = ?, `rating` = ?, `flags` = ?", Gold, Shards, Rating, Flags);
         }
 
         public void CreateScroll(ScrollTemplate scrollTemplate)
