@@ -21,6 +21,7 @@ using RelentlessZero.Network;
 using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using System;
+using System.Threading;
 
 namespace RelentlessZero
 {
@@ -30,6 +31,7 @@ namespace RelentlessZero
         {
             ConfigManager.Initialise();
             Console.Title = "RelentlessZero - Server Version: " + ConfigManager.Config.Server.Version;
+            Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             DatabaseManager.Database.Initialise(ConfigManager.Config.Network.MySql.Host, ConfigManager.Config.Network.MySql.Port,
                 ConfigManager.Config.Network.MySql.Username, ConfigManager.Config.Network.MySql.Password, ConfigManager.Config.Network.MySql.Database);
