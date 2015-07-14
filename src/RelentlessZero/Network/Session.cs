@@ -63,7 +63,7 @@ namespace RelentlessZero.Network
                 Version  = ConfigManager.Config.Server.Version,
                 AssetUrl = "http://download.scrolls.com/assets/",
                 NewsUrl  = "http://scrolls.com/news",
-                Roles    = "LOBBY,RESOURCE,LOOKUP"
+                Roles    = "LOOKUP,LOBBY,GAME,RESOURCE"
             };
 
             Send(packetServerInfo);

@@ -63,9 +63,12 @@
     <Compile Include="Entities\Battle.cs" />
     <Compile Include="Entities\Deck.cs" />
     <Compile Include="Entities\Enums\AdminRole.cs" />
+    <Compile Include="Entities\Enums\BattlePhase.cs" />
+    <Compile Include="Entities\Enums\BattleType.cs" />
     <Compile Include="Entities\Enums\DamageType.cs" />
     <Compile Include="Entities\Enums\DeckFlags.cs" />
     <Compile Include="Network\PacketDirection.cs" />
+    <Compile Include="Entities\Enums\PlayerColor.cs" />
     <Compile Include="Entities\Enums\PlayerFlags.cs" />
     <Compile Include="Entities\Enums\ResourceType.cs" />
     <Compile Include="Entities\Enums\ScrollKind.cs" />
@@ -81,8 +84,10 @@
     <Compile Include="Managers\AssetManager.cs" />
     <Compile Include="Managers\LobbyManager.cs" />
     <Compile Include="Managers\WorldManager.cs" />
+    <Compile Include="Network\Attributes\PacketEffectAttribute.cs" />
     <Compile Include="Network\Attributes\PacketHandlerAttribute.cs" />
     <Compile Include="Network\Handlers\AuthHandler.cs" />
+    <Compile Include="Network\Handlers\BattleHandler.cs" />
     <Compile Include="Network\Handlers\DeckHandler.cs" />
     <Compile Include="Network\Handlers\LobbyHandler.cs" />
     <Compile Include="Network\Handlers\MiscHandler.cs" />
