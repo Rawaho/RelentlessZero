@@ -18,7 +18,9 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using RelentlessZero.Entities;
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace RelentlessZero.Network
 {
@@ -39,18 +41,20 @@ namespace RelentlessZero.Network
     // Sub Packet Structures
     // ----------------------------------------------------------------
 
-    public class PacketDeck
+    public class PacketAvatar
     {
-        [JsonProperty(PropertyName = "name")]
-        public string Name { get; set; }
-        [JsonProperty(PropertyName = "resources")]
-        public string Resources { get; set; }
-        [JsonProperty(PropertyName = "valid")]
-        public bool Valid { get; set; }
-        [JsonProperty(PropertyName = "updated")]
-        public string Updated { get; set; }
-        [JsonProperty(PropertyName = "timestamp")]
-        public uint TimeStamp { get; set; }
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+        [JsonProperty(PropertyName = "head")]
+        public int Head { get; set; }
+        [JsonProperty(PropertyName = "body")]
+        public int Body { get; set; }
+        [JsonProperty(PropertyName = "leg")]
+        public int Leg { get; set; }
+        [JsonProperty(PropertyName = "armBack")]
+        public int ArmBack { get; set; }
+        [JsonProperty(PropertyName = "armFront")]
+        public int ArmFront { get; set; }
     }
 
     public class PacketCard
@@ -67,6 +71,51 @@ namespace RelentlessZero.Network
         public uint Level { get; set; }
     }
 
+    public class PacketDeck
+    {
+        [JsonProperty(PropertyName = "name")]
+        public string Name { get; set; }
+        [JsonProperty(PropertyName = "resources")]
+        public string Resources { get; set; }
+        [JsonProperty(PropertyName = "valid")]
+        public bool Valid { get; set; }
+        [JsonProperty(PropertyName = "updated")]
+        public string Updated { get; set; }
+        [JsonProperty(PropertyName = "timestamp")]
+        public uint TimeStamp { get; set; }
+    }
+
+    public class PacketIdol
+    {
+        [JsonProperty(PropertyName = "color")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public PlayerColor Color { get; set; }
+        [JsonProperty(PropertyName = "position")]
+        public int position { get; set; }
+        [JsonProperty(PropertyName = "hp")]
+        public int Hp { get; set; }
+        [JsonProperty(PropertyName = "maxHp")]
+        public int MaxHp { get; set; }
+    }
+
+    public class PacketIdolTypes
+    {
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+        [JsonProperty(PropertyName = "type")] // TODO : check what this type is, and maybe replace string by enum ?
+        public string Type { get; set; }
+        [JsonProperty(PropertyName = "idol1")]
+        public int Idol1 { get; set; }
+        [JsonProperty(PropertyName = "idol2")]
+        public int Idol2 { get; set; }
+        [JsonProperty(PropertyName = "idol3")]
+        public int Idol3 { get; set; }
+        [JsonProperty(PropertyName = "idol4")]
+        public int Idol4 { get; set; }
+        [JsonProperty(PropertyName = "idol5")]
+        public int Idol5 { get; set; }
+    }
+
     public class PacketFullRoom
     {
         [JsonProperty(PropertyName = "room")]
@@ -75,6 +124,42 @@ namespace RelentlessZero.Network
         public int NumberOfUsers { get; set; }
     }
 
+    public class PacketGoldReward
+    {
+        [JsonProperty(PropertyName = "matchReward")]
+        public uint MatchReward { get; set; }
+        [JsonProperty(PropertyName = "tierMatchReward")]
+        public uint TierMatchReward { get; set; }
+        [JsonProperty(PropertyName = "matchCompletionReward")]
+        public uint MatchCompletionReward { get; set; }
+        [JsonProperty(PropertyName = "idolsDestroyedReward")]
+        public uint IdolsDestroyedReward { get; set; }
+        [JsonProperty(PropertyName = "betReward")]
+        public uint betReward { get; set; }
+    }
+
+    public class PacketPlayerStats
+    {
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+        [JsonProperty(PropertyName = "idolDamage")]
+        public uint IdolDamage { get; set; }
+        [JsonProperty(PropertyName = "unitDamage")]
+        public uint UnitDamage { get; set; }
+        [JsonProperty(PropertyName = "unitsPlayed")]
+        public uint UnitsPlayed { get; set; }
+        [JsonProperty(PropertyName = "spellsPlayed")]
+        public uint SpellsPlayed { get; set; }
+        [JsonProperty(PropertyName = "enchantmentsPlayed")]
+        public uint EnchantmentsPlayed { get; set; }
+        [JsonProperty(PropertyName = "scrollsDrawn")]
+        public uint ScrollsDrawn { get; set; }
+        [JsonProperty(PropertyName = "totalMs")]
+        public uint TotalMs { get; set; }
+        [JsonProperty(PropertyName = "mostDamageUnit")]
+        public uint MostDamageUnit { get; set; }
+    }
+    
     public class PacketProfile
     {
         [JsonProperty(PropertyName = "id")]
@@ -131,12 +216,66 @@ namespace RelentlessZero.Network
         public string FeatureType { get; set; }
     }
 
+    // TODO : find a better way to define and serialize/deserialize these
+    // ----------------------------------------------------------------
+    // Packet Effects Structures
+    // ----------------------------------------------------------------
+
+    public class PacketEffect { }
+
+    [PacketEffect("IdolUpdateEffect")]
+    public class PacketIdolUpdateEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "idol")]
+        public PacketIdol Idol { get; set; }
+    }
+
+    [PacketEffect("MulliganDisabledEffect")]
+    public class PacketMulliganDisabledEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "color")]
+        public PlayerColor Color { get; set; }
+    }
+
+    [PacketEffect("EndGame")]
+    public class PacketEndGameEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "winner")]
+        public PlayerColor Winner { get; set; }
+        [JsonProperty(PropertyName = "whiteStats")]
+        public PacketPlayerStats WhiteStats { get; set; }
+        [JsonProperty(PropertyName = "blackStats")]
+        public PacketPlayerStats BlackStats { get; set; }
+        [JsonProperty(PropertyName = "whiteGoldReward")]
+        public PacketGoldReward WhiteGoldReward { get; set; }
+        [JsonProperty(PropertyName = "blackGoldReward")]
+        public PacketGoldReward BlackGoldReward { get; set; }
+    }
+
+    [PacketEffect("SurrenderEffect")]
+    public class PacketSurrenderEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "color")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public PlayerColor Color { get; set; }
+    }
+
+
     // ----------------------------------------------------------------
     // Packet Structures
     // ----------------------------------------------------------------
 
     [Packet("ActivateGame", PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketActivateGame : PacketHeader { }
+
+    [Packet("BattleRedirect", PacketDirection.ServerToClient, SessionType.Lobby)]
+    public class PacketBattleRedirect : PacketHeader
+    {
+        [JsonProperty(PropertyName = "ip")]
+        public string IP { get; set; }
+        [JsonProperty(PropertyName = "port")]
+        public uint Port { get; set; }
+    }
 
     [Packet("CardTypes", PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketCardTypes : PacketHeader
@@ -145,14 +284,7 @@ namespace RelentlessZero.Network
         public List<ScrollTemplate> CardTypes { get; set; }
     }
 
-    [Packet("DeckList", PacketDirection.Bidirectional, SessionType.Lobby)]
-    public class PacketDeckList : PacketHeader
-    {
-        [JsonProperty(PropertyName = "decks")]
-        public List<PacketDeck> Decks{ get; set; }
-    }
-
-    [Packet("Connect", PacketDirection.ClientToServer, SessionType.Lobby, false)]
+    [Packet("Connect", PacketDirection.ClientToServer, SessionType.Lobby | SessionType.Battle, false)]
     public class PacketConnect
     {
         [JsonProperty(PropertyName = "email")]
@@ -161,6 +293,13 @@ namespace RelentlessZero.Network
         public string Password { get; set; }
         [JsonProperty(PropertyName = "authHash")]
         public string AuthHash { get; set; }
+    }
+
+    [Packet("DeckList", PacketDirection.Bidirectional, SessionType.Lobby)]
+    public class PacketDeckList : PacketHeader
+    {
+        [JsonProperty(PropertyName = "decks")]
+        public List<PacketDeck> Decks { get; set; }
     }
 
     [Packet("DidYouKnow", PacketDirection.Bidirectional, SessionType.Lobby, false)]
@@ -187,8 +326,71 @@ namespace RelentlessZero.Network
     [Packet("FirstConnect", PacketDirection.ClientToServer, SessionType.Lobby, false)]
     public class PacketFirstConnect : PacketConnect { }
 
+    [Packet("GameInfo", PacketDirection.ServerToClient, SessionType.Battle)]
+    public class PacketGameInfo : PacketHeader
+    {
+        [JsonProperty(PropertyName = "white")] // name of left player
+        public string White { get; set; }
+        [JsonProperty(PropertyName = "black")] // name of right player
+        public string Black { get; set; }
+        [JsonProperty(PropertyName = "gameType")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public BattleType GameType { get; set; }
+        [JsonProperty(PropertyName = "gameId")]
+        public uint GameId { get; set; } // probably id of battle instance in database
+        [JsonProperty(PropertyName = "roundTimerSeconds")]
+        public int roundTimerSeconds { get; set; }
+        [JsonProperty(PropertyName = "phase")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public BattlePhase Phase { get; set; }
+        [JsonProperty(PropertyName = "whiteAvatar")]
+        public PacketAvatar WhiteAvatar { get; set; }
+        [JsonProperty(PropertyName = "blackAvatar")]
+        public PacketAvatar BlackAvatar { get; set; }
+        [JsonProperty(PropertyName = "whiteIdolTypes")]
+        public PacketIdolTypes WhiteIdolTypes { get; set; }
+        [JsonProperty(PropertyName = "blackIdolTypes")]
+        public PacketIdolTypes BlackIdolTypes { get; set; }
+        [JsonProperty(PropertyName = "customSettings")]
+        public List<string> CustomSettings { get; set; } // TODO : gather more info and change type
+        [JsonProperty(PropertyName = "rewardForIdolKill")]
+        public uint RewardForIdolKill { get; set; }
+        [JsonProperty(PropertyName = "nodeId")]
+        public string NodeId { get; set; }
+        [JsonProperty(PropertyName = "port")]
+        public uint Port { get; set; }
+        [JsonProperty(PropertyName = "whiteIdols")]
+        public List<PacketIdol> WhiteIdols { get; set; }
+        [JsonProperty(PropertyName = "blackIdols")]
+        public List<PacketIdol> BlackIdols { get; set; }
+        [JsonProperty(PropertyName = "refId")] //TODO : what's that ?
+        public int RefId { get; set; }
+        [JsonProperty(PropertyName = "maxTierRewardMultiplier")]
+        public float MaxTierRewardMultiplier { get; set; }
+        [JsonProperty(PropertyName = "tierRewardMultiplierDelta")]
+        public List<float> TierRewardMultiplierDelta { get; set; }
+
+    }
+
+    [Packet("GameMatchQueueStatus", PacketDirection.ServerToClient, SessionType.Lobby)]
+    public class PacketGameMatchQueueStatus : PacketHeader
+    {
+        [JsonProperty(PropertyName = "inQueue")]
+        public bool InQueue { get; set; }
+        [JsonProperty(PropertyName = "gameType")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public BattleType GameType { get; set; }
+
+    }
+
     [Packet("JoinLobby", PacketDirection.ClientToServer, SessionType.Lobby)]
     public class PacketJoinLobby { }
+
+    [Packet("JoinBattle", PacketDirection.ClientToServer, SessionType.Battle)]
+    public class PacketJoinBattle { }
+
+    [Packet("LeaveGame", PacketDirection.ClientToServer, SessionType.Battle)]
+    public class PacketLeaveGame { }
 
     [Packet("LibraryView", PacketDirection.Bidirectional, SessionType.Lobby)]
     public class PacketLibraryView : PacketHeader
@@ -206,6 +408,24 @@ namespace RelentlessZero.Network
         public string Ip { get; set; }
         [JsonProperty(PropertyName = "port")]
         public int Port { get; set; }
+    }
+
+    [Packet("NewEffects", PacketDirection.ServerToClient, SessionType.Battle)]
+    public class PacketNewEffects : PacketHeader
+    {
+        // TODO : find a better way to define and serialize/deserialize effects
+        [JsonProperty(PropertyName = "effects")]
+        private List<Dictionary<string, PacketEffect>> Effects = new List<Dictionary<string, PacketEffect>>(); 
+
+        public void AddEffect(PacketEffect effect)
+        {
+            Dictionary<string, PacketEffect> toAdd = new Dictionary<string, PacketEffect>();
+            foreach (var effectAttribute in effect.GetType().GetCustomAttributes<PacketEffectAttribute>())
+            {
+                toAdd.Add(effectAttribute.Name, effect);
+            }
+            Effects.Add(toAdd);
+        }
     }
 
     [Packet("Ok", PacketDirection.ServerToClient, SessionType.Lookup | SessionType.Lobby | SessionType.Battle, false)]
@@ -237,6 +457,15 @@ namespace RelentlessZero.Network
     {
         [JsonProperty(PropertyName = "time")]
         public uint Time { get; set; }
+    }
+
+    [Packet("PlaySinglePlayerQuickMatch", PacketDirection.ClientToServer, SessionType.Lobby)]
+    public class PacketPlaySinglePlayerQuickMatch : PacketHeader
+    {
+        [JsonProperty(PropertyName = "robotName")]
+        public string RobotName { get; set; }
+        [JsonProperty(PropertyName = "deck")]
+        public string Deck { get; set; }
     }
 
     [Packet("ProfileDataInfo", PacketDirection.ServerToClient, SessionType.Lobby)]
@@ -316,4 +545,7 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "roles")]
         public string Roles { get; set; }
     }
+
+    [Packet("Surrender", PacketDirection.ClientToServer, SessionType.Battle)]
+    public class PacketSurrender : PacketHeader { }
 }

@@ -23,6 +23,28 @@ namespace RelentlessZero.Network.Handlers
 {
     public static class DeckHandler
     {
+        [PacketHandler("DeckList")]
+        public static void HandleDeckList(object packet, Session session)
+        {
+            // temporary for testing purposes
+            var toSend = new PacketDeckList()
+            {
+                Decks = new List<PacketDeck>()
+            };
+
+            var oneRandomDeck = new PacketDeck()
+            {
+                Name = "TestDeck",
+                Resources = "DECAY,ENERGY",
+                Valid = true,
+                Updated = "Blablablah",
+                TimeStamp = 10 // TODO : check if timestamp is the last deck save time
+            };
+            toSend.Decks.Add(oneRandomDeck);
+
+            session.Send(toSend);
+        }
+
         [PacketHandler("LibraryView")]
         public static void HandleLibraryView(object packet, Session session)
         {
@@ -48,29 +70,6 @@ namespace RelentlessZero.Network.Handlers
             }
 
             session.Send(libraryView);
-
-        }
-
-        [PacketHandler("DeckList")]
-        public static void HandleDeckList(object packet, Session session)
-        {
-            // temporary for testing purposes
-            var toSend= new PacketDeckList()
-            {
-                Decks = new List<PacketDeck>()
-            };
-
-            var oneRandomDeck = new PacketDeck()
-            {
-                Name = "TestDeck",
-                Resources = "DECAY,ENERGY",
-                Valid = true,
-                Updated = "Blablablah",
-                TimeStamp = 10 // TODO : check if timestamp is the last deck save time
-            };
-            toSend.Decks.Add(oneRandomDeck);
-
-            session.Send(toSend);
 
         }
     }

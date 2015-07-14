@@ -17,11 +17,39 @@
 
 using RelentlessZero.Logging;
 using RelentlessZero.Managers;
+using RelentlessZero.Entities;
+using System;
+using System.Net;
 
 namespace RelentlessZero.Network.Handlers
 {
     public static class LobbyHandler
     {
+        [PacketHandler("PlaySinglePlayerQuickMatch")]
+        public static void HandlePlaySinglePlayerQuickMatch(object packet, Session session)
+        {
+            // TODO : handle AI robot name and deck
+
+            BattleType[] typesToAbort = new BattleType[3] {BattleType.MP_QUICKMATCH, BattleType.MP_RANKED, BattleType.MP_LIMITED};
+
+            foreach (BattleType battleType in typesToAbort)
+            {
+                var cancelQueue = new PacketGameMatchQueueStatus()
+                {
+                    InQueue = false,
+                    GameType = battleType
+                };
+                session.Send(cancelQueue);
+            }
+
+            var battleRedirect = new PacketBattleRedirect()
+            {
+                IP = ((IPEndPoint)session.Socket.LocalEndPoint).Address.ToString(),
+                Port = (uint)ConfigManager.Config.Network.BattlePort
+            };
+            session.Send(battleRedirect);
+        }
+
         [PacketHandler("RoomChatMessage")]
         public static void HandleRoomChatMessage(object packet, Session session)
         {
