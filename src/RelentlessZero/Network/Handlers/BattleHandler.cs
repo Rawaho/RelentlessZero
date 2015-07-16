@@ -117,7 +117,7 @@ namespace RelentlessZero.Network.Handlers
             PlayerColor surrenderingColor = PlayerColor.white;
             
             var packetSurrenderEffect = new PacketNewEffects();
-            packetSurrenderEffect.AddEffect(new PacketSurrenderEffect()
+            packetSurrenderEffect.Effects.Add(new PacketSurrenderEffect()
              {
                  Color = surrenderingColor
              });
@@ -126,7 +126,7 @@ namespace RelentlessZero.Network.Handlers
             var packetUpdateIdols = new PacketNewEffects();
             for (int i = 0; i < 5; ++i)
             {
-                packetUpdateIdols.AddEffect(new PacketIdolUpdateEffect()
+                packetUpdateIdols.Effects.Add(new PacketIdolUpdateEffect()
                 {
                     Idol = new PacketIdol()
                     {
@@ -137,14 +137,14 @@ namespace RelentlessZero.Network.Handlers
                     }
                 });
             }
-            packetUpdateIdols.AddEffect(new PacketMulliganDisabledEffect()
+            packetUpdateIdols.Effects.Add(new PacketMulliganDisabledEffect()
             {
                 Color = surrenderingColor
             });
             session.Send(packetUpdateIdols);
 
             var packetEndGame = new PacketNewEffects();
-            packetEndGame.AddEffect(new PacketEndGameEffect()
+            packetEndGame.Effects.Add(new PacketEndGameEffect()
             {
                 Winner = PlayerColor.black,
                 WhiteStats = new PacketPlayerStats()

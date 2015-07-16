@@ -209,12 +209,57 @@ namespace RelentlessZero.Network
         public string FeatureType { get; set; }
     }
 
-    // TODO : find a better way to define and serialize/deserialize these
     // ----------------------------------------------------------------
     // Packet Effects Structures
     // ----------------------------------------------------------------
 
-    public class PacketEffect { }
+    // custom serializer for effects subpackets. Meh.
+    public class JsonPacketEffectSerializer : JsonConverter
+    {
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+                PacketEffect effect = (PacketEffect)value;
+                PacketEffectAttribute effectAttribute = effect.GetType().GetCustomAttribute<PacketEffectAttribute>();
+                if (effectAttribute == null)
+                    throw new NotSupportedException("All PacketEffect classes must have a PacketEffectAttribute !");
+
+                writer.WriteStartObject();
+                writer.WritePropertyName(effectAttribute.Name);
+                writer.WriteStartObject();
+                foreach (PropertyInfo info in value.GetType().GetProperties())
+                {
+                    string propertyName;
+                    JsonPropertyAttribute propertyAttribute = info.GetCustomAttribute<JsonPropertyAttribute>();
+                    if (propertyAttribute != null)
+                        propertyName = propertyAttribute.PropertyName;
+                    else
+                        propertyName = info.Name;
+                    writer.WritePropertyName(propertyName);
+
+                    JsonConverterAttribute conversionAttribute = info.GetCustomAttribute<JsonConverterAttribute>();
+                    if (conversionAttribute != null)
+                        writer.WriteRawValue(JsonConvert.SerializeObject(info.GetValue(value), Formatting.None, (JsonConverter)Activator.CreateInstance(conversionAttribute.ConverterType)));
+                    else
+                        writer.WriteRawValue(JsonConvert.SerializeObject(info.GetValue(value)));
+                }
+                writer.WriteEndObject();
+                writer.WriteEndObject();
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            // effects packets are sent by server and should never be received from client
+            throw new NotImplementedException();
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return typeof(PacketEffect).IsAssignableFrom(objectType);
+        }
+    }
+
+    [JsonConverter(typeof(JsonPacketEffectSerializer))]
+    public abstract class PacketEffect {}
 
     [PacketEffect("IdolUpdateEffect")]
     public class PacketIdolUpdateEffect : PacketEffect
@@ -440,19 +485,8 @@ namespace RelentlessZero.Network
     [Packet("NewEffects", PacketDirection.ServerToClient, SessionType.Battle)]
     public class PacketNewEffects : PacketHeader
     {
-        // TODO : find a better way to define and serialize/deserialize effects
         [JsonProperty(PropertyName = "effects")]
-        private List<Dictionary<string, PacketEffect>> Effects = new List<Dictionary<string, PacketEffect>>(); 
-
-        public void AddEffect(PacketEffect effect)
-        {
-            Dictionary<string, PacketEffect> toAdd = new Dictionary<string, PacketEffect>();
-            foreach (var effectAttribute in effect.GetType().GetCustomAttributes<PacketEffectAttribute>())
-            {
-                toAdd.Add(effectAttribute.Name, effect);
-            }
-            Effects.Add(toAdd);
-        }
+        public List<PacketEffect> Effects = new List<PacketEffect>(); 
     }
 
     [Packet("Ok", PacketDirection.ServerToClient, SessionType.Lookup | SessionType.Lobby | SessionType.Battle, false)]
