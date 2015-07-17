@@ -16,6 +16,7 @@
  */
 
 using RelentlessZero.Entities;
+using RelentlessZero.Managers;
 using System.Collections.Generic;
 using System.Net;
 
@@ -24,171 +25,127 @@ namespace RelentlessZero.Network.Handlers
     public static class BattleHandler
     {
         /* TODO :
-         * - store battle data in database, and fill the packet structures
-         * with relevant data instead of dummies. 
          * - handle multiplayer. All this code is for single player only !
          */
 
         [PacketHandler("JoinBattle")]
         public static void HandleJoinBattle(object packet, Session session)
         {
-            var gameInfo = new PacketGameInfo()
+            // TODO : handle avatars
+            Battle battle;
+            if (BattleManager.Battles.TryGetValue(session.Player.Id, out battle))
             {
-                White = session.Player.Username,
-                Black = "Easy AI",
-                GameType = BattleType.SP_QUICKMATCH,
-                GameId = 0,
-                roundTimerSeconds = -1,
-                Phase = BattlePhase.Init,
-                WhiteAvatar = new PacketAvatar()
+                var gameInfo = new PacketGameInfo()
                 {
-                    ProfileId = session.Player.Id,
-                    Head = 15,
-                    Body = 12,
-                    Leg = 11,
-                    ArmBack = 9,
-                    ArmFront = 13
-                },
-                BlackAvatar = new PacketAvatar()
-                {
-                    ProfileId = 1337,
-                    Head = 15,
-                    Body = 12,
-                    Leg = 11,
-                    ArmBack = 9,
-                    ArmFront = 13
-                },
-                WhiteIdolTypes = new PacketIdolTypes()
-                {
-                    ProfileId = session.Player.Id,
-                    Type = "DEFAULT",
-                    Idol1 = 0,
-                    Idol2 = 0,
-                    Idol3 = 0,
-                    Idol4 = 0,
-                    Idol5 = 0,
-                },
-                BlackIdolTypes = new PacketIdolTypes()
-                {
-                    ProfileId = 1337,
-                    Type = "DEFAULT",
-                    Idol1 = 0,
-                    Idol2 = 0,
-                    Idol3 = 0,
-                    Idol4 = 0,
-                    Idol5 = 0,
-                },
-                CustomSettings = new List<string>(),
-                RewardForIdolKill = 10,
-                NodeId = ((IPEndPoint)session.Socket.LocalEndPoint).Address.ToString(),
-                Port = (uint)ConfigManager.Config.Network.BattlePort,
-                WhiteIdols = new List<PacketIdol>(),
-                BlackIdols = new List<PacketIdol>(),
-                MaxTierRewardMultiplier = 0.5f,
-                TierRewardMultiplierDelta = new List<float>()
-            };
-
-            gameInfo.WhiteIdols.Add(new PacketIdol() { Color = PlayerColor.white, position = 0, Hp = 10, MaxHp = 10 });
-            gameInfo.WhiteIdols.Add(new PacketIdol() { Color = PlayerColor.white, position = 1, Hp = 10, MaxHp = 10 });
-            gameInfo.WhiteIdols.Add(new PacketIdol() { Color = PlayerColor.white, position = 2, Hp = 10, MaxHp = 10 });
-            gameInfo.WhiteIdols.Add(new PacketIdol() { Color = PlayerColor.white, position = 3, Hp = 10, MaxHp = 10 });
-            gameInfo.WhiteIdols.Add(new PacketIdol() { Color = PlayerColor.white, position = 4, Hp = 10, MaxHp = 10 });
-
-            gameInfo.BlackIdols.Add(new PacketIdol() { Color = PlayerColor.black, position = 0, Hp = 10, MaxHp = 10 });
-            gameInfo.BlackIdols.Add(new PacketIdol() { Color = PlayerColor.black, position = 1, Hp = 10, MaxHp = 10 });
-            gameInfo.BlackIdols.Add(new PacketIdol() { Color = PlayerColor.black, position = 2, Hp = 10, MaxHp = 10 });
-            gameInfo.BlackIdols.Add(new PacketIdol() { Color = PlayerColor.black, position = 3, Hp = 10, MaxHp = 10 });
-            gameInfo.BlackIdols.Add(new PacketIdol() { Color = PlayerColor.black, position = 4, Hp = 10, MaxHp = 10 });
+                    White = battle.WhiteSide.PlayerName,
+                    Black = battle.BlackSide.PlayerName,
+                    GameType = battle.Type,
+                    GameId = 1,
+                    roundTimerSeconds = battle.RoundTimeSeconds,
+                    Phase = battle.Phase,
+                    WhiteAvatar = new PacketAvatar()
+                    {
+                        ProfileId = battle.WhiteSide.PlayerId,
+                        Head = 15,
+                        Body = 12,
+                        Leg = 11,
+                        ArmBack = 9,
+                        ArmFront = 13
+                    },
+                    BlackAvatar = new PacketAvatar()
+                    {
+                        ProfileId = battle.BlackSide.PlayerId,
+                        Head = 15,
+                        Body = 12,
+                        Leg = 11,
+                        ArmBack = 9,
+                        ArmFront = 13
+                    },
+                    WhiteIdolTypes = new PacketIdolTypes()
+                    {
+                        ProfileId = battle.WhiteSide.PlayerId,
+                        Type = "DEFAULT",
+                        Idol1 = 0,
+                        Idol2 = 0,
+                        Idol3 = 0,
+                        Idol4 = 0,
+                        Idol5 = 0,
+                    },
+                    BlackIdolTypes = new PacketIdolTypes()
+                    {
+                        ProfileId = battle.BlackSide.PlayerId,
+                        Type = "DEFAULT",
+                        Idol1 = 0,
+                        Idol2 = 0,
+                        Idol3 = 0,
+                        Idol4 = 0,
+                        Idol5 = 0,
+                    },
+                    CustomSettings = new List<string>(),
+                    RewardForIdolKill = battle.RewardForIdolKill,
+                    NodeId = ((IPEndPoint)session.Socket.LocalEndPoint).Address.ToString(),
+                    Port = (uint)ConfigManager.Config.Network.BattlePort,
+                    MaxTierRewardMultiplier = 0.5f,
+                    TierRewardMultiplierDelta = new List<float>(),
+                    WhiteIdols = battle.WhiteSide.Idols,
+                    BlackIdols = battle.BlackSide.Idols
+                };
 
             
-            session.Send(gameInfo);
+                session.Send(gameInfo);
+            }
         }
 
         [PacketHandler("LeaveGame")]
         public static void HandleLeaveGame(object packet, Session session)
         {
-            // TODO : something ?
+            BattleManager.Battles.Remove(session.Player.Id);
         }
 
 
         [PacketHandler("Surrender")]
         public static void HandleSurrender(object packet, Session session)
         {
-            PlayerColor surrenderingColor = PlayerColor.white;
-            
-            var packetSurrenderEffect = new PacketNewEffects();
-            packetSurrenderEffect.Effects.Add(new PacketSurrenderEffect()
-             {
-                 Color = surrenderingColor
-             });
-            session.Send(packetSurrenderEffect);
-
-            var packetUpdateIdols = new PacketNewEffects();
-            for (int i = 0; i < 5; ++i)
+            // TODO : send to both players
+            Battle battle;
+            if (BattleManager.Battles.TryGetValue(session.Player.Id, out battle))
             {
-                packetUpdateIdols.Effects.Add(new PacketIdolUpdateEffect()
+                BattleSide surrenderingSide = battle.FindSideByUsername(session.Player.Username);
+                PlayerColor surrenderingColor = surrenderingSide.Color;
+
+                var packetSurrenderEffect = new PacketNewEffects();
+                packetSurrenderEffect.Effects.Add(new PacketSurrenderEffect()
                 {
-                    Idol = new PacketIdol()
-                    {
-                        Color = surrenderingColor,
-                        position = i,
-                        Hp = 0,
-                        MaxHp = 10
-                    }
+                    Color = surrenderingColor
                 });
-            }
-            packetUpdateIdols.Effects.Add(new PacketMulliganDisabledEffect()
-            {
-                Color = surrenderingColor
-            });
-            session.Send(packetUpdateIdols);
+                session.Send(packetSurrenderEffect);
 
-            var packetEndGame = new PacketNewEffects();
-            packetEndGame.Effects.Add(new PacketEndGameEffect()
-            {
-                Winner = PlayerColor.black,
-                WhiteStats = new PacketPlayerStats()
+                var packetUpdateIdols = new PacketNewEffects();
+                for (int i = 0; i < 5; ++i)
                 {
-                    ProfileId = session.Player.Id,
-                    IdolDamage = 0,
-                    UnitDamage = 0,
-                    UnitsPlayed = 0,
-                    SpellsPlayed = 0,
-                    EnchantmentsPlayed = 0,
-                    ScrollsDrawn = 0,
-                    TotalMs = 12,
-                    MostDamageUnit = 0
-                },
-                BlackStats = new PacketPlayerStats()
-                {
-                    ProfileId = session.Player.Id,
-                    IdolDamage = 0,
-                    UnitDamage = 0,
-                    UnitsPlayed = 0,
-                    SpellsPlayed = 0,
-                    EnchantmentsPlayed = 0,
-                    ScrollsDrawn = 0,
-                    TotalMs = 1,
-                    MostDamageUnit = 0
-                },
-                WhiteGoldReward = new PacketGoldReward()
-                {
-                    MatchReward = 10,
-                    TierMatchReward = 1,
-                    MatchCompletionReward = 100,
-                    IdolsDestroyedReward = 50,
-                    betReward = 0
-                },
-                BlackGoldReward = new PacketGoldReward()
-                {
-                    MatchReward = 10,
-                    TierMatchReward = 1,
-                    MatchCompletionReward = 100,
-                    IdolsDestroyedReward = 50,
-                    betReward = 0
+                    surrenderingSide.Idols[i].Hp = 0;
+                    packetUpdateIdols.Effects.Add(new PacketIdolUpdateEffect()
+                    {
+                        Idol = surrenderingSide.Idols[i]
+                    });
                 }
-            });
-            session.Send(packetEndGame);
+                packetUpdateIdols.Effects.Add(new PacketMulliganDisabledEffect()
+                {
+                    Color = surrenderingColor
+                });
+                session.Send(packetUpdateIdols);
+
+                var packetEndGame = new PacketNewEffects();
+                packetEndGame.Effects.Add(new PacketEndGameEffect()
+                {
+                    Winner = surrenderingSide.OpponentSide.Color,
+                    WhiteStats = battle.WhiteSide.PlayerStats,
+                    BlackStats = battle.BlackSide.PlayerStats,
+                    WhiteGoldReward = battle.WhiteSide.GoldReward,
+                    BlackGoldReward = battle.BlackSide.GoldReward
+                });
+                session.Send(packetEndGame);
+            }
         }
 
     }

@@ -88,6 +88,7 @@
     <Compile Include="Network\Handlers\LobbyHandler.cs" />
     <Compile Include="Network\Handlers\MiscHandler.cs" />
     <Compile Include="Network\Attributes\PacketAttribute.cs" />
+    <Compile Include="Managers\BattleManager.cs" />
     <Compile Include="Network\Managers\ConnectManager.cs" />
     <Compile Include="Network\Managers\PacketManager.cs" />
     <Compile Include="Network\Packets.cs" />

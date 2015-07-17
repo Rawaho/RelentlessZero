@@ -85,24 +85,11 @@ namespace RelentlessZero.Network
         public uint TimeStamp { get; set; }
     }
 
-    public class PacketIdol
-    {
-        [JsonProperty(PropertyName = "color")]
-        [JsonConverter(typeof(StringEnumConverter))]
-        public PlayerColor Color { get; set; }
-        [JsonProperty(PropertyName = "position")]
-        public int position { get; set; }
-        [JsonProperty(PropertyName = "hp")]
-        public int Hp { get; set; }
-        [JsonProperty(PropertyName = "maxHp")]
-        public int MaxHp { get; set; }
-    }
-
-    public class PacketIdolTypes
+    public class PacketIdolTypes // TODO : what is this for ?
     {
         [JsonProperty(PropertyName = "profileId")]
         public uint ProfileId { get; set; }
-        [JsonProperty(PropertyName = "type")] // TODO : check what this type is, and maybe replace string by enum ?
+        [JsonProperty(PropertyName = "type")]
         public string Type { get; set; }
         [JsonProperty(PropertyName = "idol1")]
         public int Idol1 { get; set; }
@@ -122,42 +109,6 @@ namespace RelentlessZero.Network
         public PacketRoom Room { get; set; }
         [JsonProperty(PropertyName = "numberOfUsers")]
         public int NumberOfUsers { get; set; }
-    }
-
-    public class PacketGoldReward
-    {
-        [JsonProperty(PropertyName = "matchReward")]
-        public uint MatchReward { get; set; }
-        [JsonProperty(PropertyName = "tierMatchReward")]
-        public uint TierMatchReward { get; set; }
-        [JsonProperty(PropertyName = "matchCompletionReward")]
-        public uint MatchCompletionReward { get; set; }
-        [JsonProperty(PropertyName = "idolsDestroyedReward")]
-        public uint IdolsDestroyedReward { get; set; }
-        [JsonProperty(PropertyName = "betReward")]
-        public uint betReward { get; set; }
-    }
-
-    public class PacketPlayerStats
-    {
-        [JsonProperty(PropertyName = "profileId")]
-        public uint ProfileId { get; set; }
-        [JsonProperty(PropertyName = "idolDamage")]
-        public uint IdolDamage { get; set; }
-        [JsonProperty(PropertyName = "unitDamage")]
-        public uint UnitDamage { get; set; }
-        [JsonProperty(PropertyName = "unitsPlayed")]
-        public uint UnitsPlayed { get; set; }
-        [JsonProperty(PropertyName = "spellsPlayed")]
-        public uint SpellsPlayed { get; set; }
-        [JsonProperty(PropertyName = "enchantmentsPlayed")]
-        public uint EnchantmentsPlayed { get; set; }
-        [JsonProperty(PropertyName = "scrollsDrawn")]
-        public uint ScrollsDrawn { get; set; }
-        [JsonProperty(PropertyName = "totalMs")]
-        public uint TotalMs { get; set; }
-        [JsonProperty(PropertyName = "mostDamageUnit")]
-        public uint MostDamageUnit { get; set; }
     }
     
     public class PacketProfile
@@ -272,7 +223,7 @@ namespace RelentlessZero.Network
     public class PacketIdolUpdateEffect : PacketEffect
     {
         [JsonProperty(PropertyName = "idol")]
-        public PacketIdol Idol { get; set; }
+        public Idol Idol { get; set; }
     }
 
     [PacketEffect("MulliganDisabledEffect")]
@@ -288,13 +239,13 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "winner")]
         public PlayerColor Winner { get; set; }
         [JsonProperty(PropertyName = "whiteStats")]
-        public PacketPlayerStats WhiteStats { get; set; }
+        public PlayerStats WhiteStats { get; set; }
         [JsonProperty(PropertyName = "blackStats")]
-        public PacketPlayerStats BlackStats { get; set; }
+        public PlayerStats BlackStats { get; set; }
         [JsonProperty(PropertyName = "whiteGoldReward")]
-        public PacketGoldReward WhiteGoldReward { get; set; }
+        public GoldReward WhiteGoldReward { get; set; }
         [JsonProperty(PropertyName = "blackGoldReward")]
-        public PacketGoldReward BlackGoldReward { get; set; }
+        public GoldReward BlackGoldReward { get; set; }
     }
 
     [PacketEffect("SurrenderEffect")]
@@ -382,7 +333,7 @@ namespace RelentlessZero.Network
         [JsonConverter(typeof(StringEnumConverter))]
         public BattleType GameType { get; set; }
         [JsonProperty(PropertyName = "gameId")]
-        public uint GameId { get; set; } // probably id of battle instance in database
+        public uint GameId { get; set; } // probably id of battle instance
         [JsonProperty(PropertyName = "roundTimerSeconds")]
         public int roundTimerSeconds { get; set; }
         [JsonProperty(PropertyName = "phase")]
@@ -405,9 +356,9 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "port")]
         public uint Port { get; set; }
         [JsonProperty(PropertyName = "whiteIdols")]
-        public List<PacketIdol> WhiteIdols { get; set; }
+        public Idol[] WhiteIdols { get; set; }
         [JsonProperty(PropertyName = "blackIdols")]
-        public List<PacketIdol> BlackIdols { get; set; }
+        public Idol[] BlackIdols { get; set; }
         [JsonProperty(PropertyName = "refId")] //TODO : what's that ?
         public int RefId { get; set; }
         [JsonProperty(PropertyName = "maxTierRewardMultiplier")]
