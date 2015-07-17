@@ -42,6 +42,20 @@ namespace RelentlessZero.Network.Handlers
                 session.Send(cancelQueue);
             }
 
+            if (BattleManager.Battles.ContainsKey(session.Player.Id))
+                LogManager.Write("Lobby handler", "player {0} wants to play several skirmish at once ! Not possible !", session.Player.Id);
+            
+            Battle newBattle = new Battle();
+            BattleSide humanSide = new BattleSide(session.Player.Id, session.Player.Username, PlayerColor.white);
+            BattleSide aiSide = new BattleSide(12, "Easy AI", PlayerColor.black);
+            humanSide.OpponentSide = aiSide;
+            aiSide.OpponentSide = humanSide;
+            newBattle.WhiteSide = humanSide;
+            newBattle.BlackSide = aiSide;
+            newBattle.Type = BattleType.SP_QUICKMATCH;
+
+            BattleManager.Battles[session.Player.Id] = newBattle;
+
             var battleRedirect = new PacketBattleRedirect()
             {
                 IP = ((IPEndPoint)session.Socket.LocalEndPoint).Address.ToString(),
