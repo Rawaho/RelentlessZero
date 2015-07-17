@@ -216,6 +216,7 @@ namespace RelentlessZero.Network.Handlers
             }
 
             player.LoadScrolls();
+            player.LoadDecks();
 
             // TODO: friend stuff here
 

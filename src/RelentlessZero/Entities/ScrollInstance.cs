@@ -37,6 +37,8 @@ namespace RelentlessZero.Entities
             writer.WriteValue(scrollInstance.Tradable);
             writer.WritePropertyName("isToken");
             writer.WriteValue(false);               // TODO
+            writer.WritePropertyName("level");
+            writer.WriteValue(scrollInstance.Level);
             writer.WriteEndObject();
         }
 

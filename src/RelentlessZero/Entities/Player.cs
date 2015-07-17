@@ -21,6 +21,7 @@ using RelentlessZero.Managers;
 using RelentlessZero.Network;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RelentlessZero.Entities
 {
@@ -37,11 +38,15 @@ namespace RelentlessZero.Entities
 
         public List<string> CurrentRooms { get; set; }
         public List<ScrollInstance> Scrolls { get; set; }
+        public List<Deck> Decks { get; set; }
+        public List<ulong> ValidatedDeck { get; set; }
 
         public Player()
         {
-            CurrentRooms = new List<string>();
-            Scrolls      = new List<ScrollInstance>();
+            CurrentRooms  = new List<string>();
+            Scrolls       = new List<ScrollInstance>();
+            Decks         = new List<Deck>();
+            ValidatedDeck = new List<ulong>();
         }
 
         public void OnDisconnect()
@@ -55,6 +60,9 @@ namespace RelentlessZero.Entities
 
         public bool HasFlag(PlayerFlags flag) { return (Flags & flag) != 0; }
         public void RemoveFlag(PlayerFlags flag) { Flags &= ~flag; }
+
+        public ScrollInstance GetScroll(ulong id) { return Scrolls.SingleOrDefault(scroll => scroll.Id == id); }
+        public Deck GetDeck(string name) { return Decks.SingleOrDefault(deck => deck.Name == name); }
 
         public PacketRoomInfoProfile GenerateRoomInfoProfile()
         {
@@ -134,6 +142,47 @@ namespace RelentlessZero.Entities
                     scrollInstance.Stats.Wins       = scrollInstanceResult.Read<uint>(i, "wins");
 
                     Scrolls.Add(scrollInstance);
+                }
+            }
+        }
+
+        public void LoadDecks()
+        {
+            var deckResult = DatabaseManager.Database.Select("SELECT `id`, `name`, `timestamp`, `flags` FROM `account_deck` WHERE `accountId` = ?", Id);
+            if (deckResult != null)
+            {
+                for (int i = 0; i < deckResult.Count; i++)
+                {
+                    var deck = new Deck(this, deckResult.Read<uint>(i, "id"), deckResult.Read<string>(i, "name"), 
+                        deckResult.Read<ulong>(i, "timestamp"), deckResult.Read<DeckFlags>(i, "flags"));
+
+                    // get all scrolls associated with deck
+                    var deckScrollResult = DatabaseManager.Database.Select("SELECT `scrollInstance` FROM `account_deck_scroll` WHERE `id` = ?", deck.Id);
+                    if (deckScrollResult == null)
+                    {
+                        LogManager.Write("Player", "Deck instance {0} has no scrolls associated with it! Skipping.", deck.Id);
+                        continue;
+                    }
+
+                    for (int j = 0; j < deckScrollResult.Count; j++)
+                    {
+                        uint scrollId      = deckScrollResult.Read<uint>(j, "scrollInstance");
+                        var scrollInstance = GetScroll(scrollId);
+
+                        if (scrollInstance == null)
+                        {
+                            LogManager.Write("Player", "Scroll instance {0} in deck {1} doesn't belong to player or doesn't exist! Skipping.", scrollId, deck.Id);
+                            continue;
+                        }
+
+                        deck.Scrolls.Add(scrollInstance);
+                    }
+
+                    if (deck.Scrolls.Count >= 1)
+                    {
+                        deck.CalculateResources();
+                        Decks.Add(deck);
+                    }
                 }
             }
         }

@@ -61,8 +61,10 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Entities\Battle.cs" />
+    <Compile Include="Entities\Deck.cs" />
     <Compile Include="Entities\Enums\AdminRole.cs" />
     <Compile Include="Entities\Enums\DamageType.cs" />
+    <Compile Include="Entities\Enums\DeckFlags.cs" />
     <Compile Include="Entities\Enums\PlayerFlags.cs" />
     <Compile Include="Entities\Enums\ResourceType.cs" />
     <Compile Include="Entities\Enums\ScrollKind.cs" />

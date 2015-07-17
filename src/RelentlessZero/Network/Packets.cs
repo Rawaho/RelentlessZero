@@ -128,6 +128,47 @@ namespace RelentlessZero.Network
         public string AuthHash { get; set; }
     }
 
+    [Packet("DeckCards", PacketDirection.Bidirectional, SessionType.Lobby)]
+    public class PacketDeckCards : PacketHeader
+    {
+        [JsonProperty(PropertyName = "deck")]
+        public string Deck { get; set; }
+        [JsonProperty(PropertyName = "cards")]
+        public List<ScrollInstance> Scrolls { get; set; }
+    }
+
+    [Packet("DeckDelete", PacketDirection.ClientToServer, SessionType.Lobby)]
+    public class PacketDeckDelete : PacketHeader
+    {
+        [JsonProperty(PropertyName = "name")]
+        public string Name { get; set; }
+    }
+
+    [Packet("DeckList", PacketDirection.Bidirectional, SessionType.Lobby)]
+    public class PacketDeckList : PacketHeader
+    {
+        [JsonProperty(PropertyName = "decks")]
+        public List<Deck> Decks { get; set; }
+    }
+
+    [Packet("DeckSave", PacketDirection.ClientToServer, SessionType.Lobby)]
+    public class PacketDeckSave : PacketHeader
+    {
+        [JsonProperty(PropertyName = "name")]
+        public string Name { get; set; }
+        [JsonProperty(PropertyName = "decks")]
+        public List<ulong> Scrolls { get; set; }
+    }
+
+    [Packet("DeckValidate", PacketDirection.Bidirectional, SessionType.Lobby)]
+    public class PacketDeckValidate : PacketHeader
+    {
+        [JsonProperty(PropertyName = "cards", NullValueHandling = NullValueHandling.Ignore)]
+        public List<ulong> Scolls { get; set; }
+        [JsonProperty(PropertyName = "errors", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> Errors { get; set; }
+    }
+
     [Packet("DidYouKnow", PacketDirection.Bidirectional, SessionType.Lobby, false)]
     public class PacketDidYouKnow : PacketHeader
     {

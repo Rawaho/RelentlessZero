@@ -30,8 +30,11 @@ namespace RelentlessZero.Managers
     {
         public static string ScrollTemplateCache { get; set; }
 
+        // asset counters
         private static object scrollInstanceIdLock;
         private static ulong scrollInstanceId;
+        private static object deckInstanceIdLock;
+        private static uint deckInstanceId;
 
         // used to generate scroll templates
         private static List<AbilityTemplate> abilityTemplateStore;
@@ -352,18 +355,30 @@ namespace RelentlessZero.Managers
         private static void InitialiseAssetCounters()
         {
             var cardInstanceIdResult = DatabaseManager.Database.Select("SELECT MAX(`id`) FROM `scroll_instance`");
+            var deckinstanceIdResult = DatabaseManager.Database.Select("SELECT MAX(`id`) FROM `account_deck`");
+
+            scrollInstanceIdLock = new object();
+            deckInstanceIdLock   = new object();
+
+            // next available scroll instance id
             if (cardInstanceIdResult != null)
-            {
-                // next available scroll instance id
-                scrollInstanceIdLock = new object();
-                scrollInstanceId     = cardInstanceIdResult.Read<ulong>(0, "MAX(`id`)") + 1;
-            }
+                scrollInstanceId = cardInstanceIdResult.Read<ulong>(0, "MAX(`id`)") + 1;
+
+            // next available deck instance id
+            if (deckinstanceIdResult != null)
+                deckInstanceId = deckinstanceIdResult.Read<uint>(0, "MAX(`id`)") + 1;
         }
 
         public static ulong GetNewScrollInstanceId()
         {
             lock (scrollInstanceIdLock)
                 return scrollInstanceId++;
+        }
+
+        public static uint GetNewDeckInstanceId()
+        {
+            lock (deckInstanceIdLock)
+                return deckInstanceId++;
         }
     }
 }
