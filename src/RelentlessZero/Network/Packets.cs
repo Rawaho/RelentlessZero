@@ -34,22 +34,6 @@ namespace RelentlessZero.Network
     // Sub Packet Structures
     // ----------------------------------------------------------------
 
-    public class PacketAvatar
-    {
-        [JsonProperty(PropertyName = "profileId")]
-        public uint ProfileId { get; set; }
-        [JsonProperty(PropertyName = "head")]
-        public int Head { get; set; }
-        [JsonProperty(PropertyName = "body")]
-        public int Body { get; set; }
-        [JsonProperty(PropertyName = "leg")]
-        public int Leg { get; set; }
-        [JsonProperty(PropertyName = "armBack")]
-        public int ArmBack { get; set; }
-        [JsonProperty(PropertyName = "armFront")]
-        public int ArmFront { get; set; }
-    }
-
     public class PacketCard
     {
         [JsonProperty(PropertyName = "id")]
@@ -416,9 +400,9 @@ namespace RelentlessZero.Network
         [JsonConverter(typeof(StringEnumConverter))]
         public BattlePhase Phase { get; set; }
         [JsonProperty(PropertyName = "whiteAvatar")]
-        public PacketAvatar WhiteAvatar { get; set; }
+        public Avatar WhiteAvatar { get; set; }
         [JsonProperty(PropertyName = "blackAvatar")]
-        public PacketAvatar BlackAvatar { get; set; }
+        public Avatar BlackAvatar { get; set; }
         [JsonProperty(PropertyName = "whiteIdolTypes")]
         public PacketIdolTypes WhiteIdolTypes { get; set; }
         [JsonProperty(PropertyName = "blackIdolTypes")]

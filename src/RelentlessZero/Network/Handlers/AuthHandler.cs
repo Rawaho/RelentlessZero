@@ -64,6 +64,7 @@ namespace RelentlessZero.Network.Handlers
                 return;
             }
 
+
             AuthStatus authStatus = AuthStatus.InvalidCredentials;
             if (accountResult.Count == 1)
             {
@@ -75,13 +76,31 @@ namespace RelentlessZero.Network.Handlers
                     AdminRole adminRole = accountResult.Read<AdminRole>(0, "adminRole");
                     string usernameDatabase = accountResult.Read<string>(0, "username");
 
+                    // avatar loading
+                    Avatar playerAvatar = new Avatar();
+                    playerAvatar.ProfileId = accountId;
+                    SqlResult avatarResult = DatabaseManager.Database.Select("SELECT head, body, leg, armBack, armFront FROM account_avatar WHERE id = ?", accountId);
+                    if (avatarResult.Count == 1)
+                    {
+                        playerAvatar.Head = avatarResult.Read<int>(0, "head");
+                        playerAvatar.Body = avatarResult.Read<int>(0, "body");
+                        playerAvatar.Leg = avatarResult.Read<int>(0, "leg");
+                        playerAvatar.ArmBack = avatarResult.Read<int>(0, "armBack");
+                        playerAvatar.ArmFront = avatarResult.Read<int>(0, "armFront");
+                    }
+                    else
+                    {
+                        LogManager.Write("HandleConnect", "user {0} has no avatar data!", username);
+                    }
+
                     session.Player = new Player()
                     {
                         Id        = accountId,
                         Session   = session,
                         Username  = usernameDatabase,
                         AdminRole = adminRole,
-                        Flags     = accountResult.Read<PlayerFlags>(0, "flags")
+                        Flags     = accountResult.Read<PlayerFlags>(0, "flags"),
+                        Avatar    = playerAvatar
                     };
 
                     // send initial profile data to client
