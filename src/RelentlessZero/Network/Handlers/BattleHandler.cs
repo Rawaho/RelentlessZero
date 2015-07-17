@@ -16,6 +16,7 @@
  */
 
 using RelentlessZero.Entities;
+using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using System.Collections.Generic;
 using System.Net;
@@ -24,16 +25,12 @@ namespace RelentlessZero.Network.Handlers
 {
     public static class BattleHandler
     {
-        /* TODO :
-         * - handle multiplayer. All this code is for single player only !
-         */
-
         [PacketHandler("JoinBattle")]
         public static void HandleJoinBattle(object packet, Session session)
         {
             // TODO : handle avatars
             Battle battle;
-            if (BattleManager.Battles.TryGetValue(session.Player.Id, out battle))
+            if (BattleManager.Battles.TryGetValue(session.Player.Id, out battle) && WorldManager.AddPlayerSession(session))
             {
                 var gameInfo = new PacketGameInfo()
                 {
@@ -94,57 +91,77 @@ namespace RelentlessZero.Network.Handlers
             
                 session.Send(gameInfo);
             }
+            else
+            {
+                LogManager.Write("JoinBattle", "player {0} failed to join battle ! Either battle not created or could not add player session!", session.Player.Username);
+            }
         }
 
         [PacketHandler("LeaveGame")]
         public static void HandleLeaveGame(object packet, Session session)
         {
-            BattleManager.Battles.Remove(session.Player.Id);
+            Battle battle = null;
+            BattleManager.Battles.TryRemove(session.Player.Id, out battle);
+            if (battle == null)
+                LogManager.Write("Battle", "could not remove client {0} battle from battle map !", session.Player.Username);
         }
-
 
         [PacketHandler("Surrender")]
         public static void HandleSurrender(object packet, Session session)
         {
-            // TODO : send to both players
             Battle battle;
             if (BattleManager.Battles.TryGetValue(session.Player.Id, out battle))
             {
                 BattleSide surrenderingSide = battle.FindSideByUsername(session.Player.Username);
+                BattleSide winningSide = surrenderingSide.OpponentSide;
+                Session winningSession = WorldManager.GetPlayerSession(surrenderingSide.OpponentSide.PlayerName);
                 PlayerColor surrenderingColor = surrenderingSide.Color;
 
-                var packetSurrenderEffect = new PacketNewEffects();
-                packetSurrenderEffect.Effects.Add(new PacketSurrenderEffect()
-                {
-                    Color = surrenderingColor
-                });
-                session.Send(packetSurrenderEffect);
-
-                var packetUpdateIdols = new PacketNewEffects();
                 for (int i = 0; i < 5; ++i)
                 {
                     surrenderingSide.Idols[i].Hp = 0;
-                    packetUpdateIdols.Effects.Add(new PacketIdolUpdateEffect()
-                    {
-                        Idol = surrenderingSide.Idols[i]
-                    });
                 }
-                packetUpdateIdols.Effects.Add(new PacketMulliganDisabledEffect()
-                {
-                    Color = surrenderingColor
-                });
-                session.Send(packetUpdateIdols);
 
-                var packetEndGame = new PacketNewEffects();
-                packetEndGame.Effects.Add(new PacketEndGameEffect()
+                Session[] sessionsToInform;
+                if (winningSession != null) // no winning session if versus AI
+                    sessionsToInform = new Session[2] { session, winningSession };
+                else
+                    sessionsToInform = new Session[1] { session };
+
+                foreach (Session itSession in sessionsToInform)
                 {
-                    Winner = surrenderingSide.OpponentSide.Color,
-                    WhiteStats = battle.WhiteSide.PlayerStats,
-                    BlackStats = battle.BlackSide.PlayerStats,
-                    WhiteGoldReward = battle.WhiteSide.GoldReward,
-                    BlackGoldReward = battle.BlackSide.GoldReward
-                });
-                session.Send(packetEndGame);
+                    var packetSurrenderEffect = new PacketNewEffects();
+                    packetSurrenderEffect.Effects.Add(new PacketSurrenderEffect()
+                    {
+                        Color = surrenderingColor
+                    });
+                    itSession.Send(packetSurrenderEffect);
+
+                    var packetUpdateIdols = new PacketNewEffects();
+                    for (int i = 0; i < 5; ++i)
+                    {
+                        packetUpdateIdols.Effects.Add(new PacketIdolUpdateEffect()
+                        {
+                            Idol = surrenderingSide.Idols[i]
+                        });
+                    }
+                    packetUpdateIdols.Effects.Add(new PacketMulliganDisabledEffect()
+                    {
+                        Color = surrenderingColor
+                    });
+                    itSession.Send(packetUpdateIdols);
+
+                    var packetEndGame = new PacketNewEffects();
+                    packetEndGame.Effects.Add(new PacketEndGameEffect()
+                    {
+                        Winner = surrenderingSide.OpponentSide.Color,
+                        WhiteStats = battle.WhiteSide.PlayerStats,
+                        BlackStats = battle.BlackSide.PlayerStats,
+                        WhiteGoldReward = battle.WhiteSide.GoldReward,
+                        BlackGoldReward = battle.BlackSide.GoldReward
+                    });
+                    itSession.Send(packetEndGame);
+                }
             }
         }
 

@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using RelentlessZero.Database;
 using RelentlessZero.Entities;
 using RelentlessZero.Network;
 using System;
@@ -32,6 +33,22 @@ namespace RelentlessZero.Managers
         {
             sessionCounter = 0;
             sessionMap = new ConcurrentDictionary<string, Session>();
+        }
+
+        public static bool GetPlayerSessionById(uint id, out Session outValue)
+        {
+            // TODO : TEMP maintain another session array by id ?
+            var nameResult = DatabaseManager.Database.Select("SELECT `username` FROM `account_info` WHERE `id` = ?", id);
+            if (nameResult != null)
+            {
+                outValue = GetPlayerSession(nameResult.Read<string>(0, "username"));
+                return outValue != null;
+            }
+            else
+            {
+                outValue = null;
+                return false;
+            }
         }
 
         public static bool AddPlayerSession(Session session)
