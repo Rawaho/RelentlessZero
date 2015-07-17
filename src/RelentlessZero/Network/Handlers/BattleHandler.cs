@@ -28,10 +28,31 @@ namespace RelentlessZero.Network.Handlers
         [PacketHandler("JoinBattle")]
         public static void HandleJoinBattle(object packet, Session session)
         {
-            // TODO : handle avatars
             Battle battle;
             if (BattleManager.Battles.TryGetValue(session.Player.Id, out battle) && WorldManager.AddPlayerSession(session))
             {
+                BattleSide playerSide = battle.FindSideByUsername(session.Player.Username);
+                Avatar whiteAvatar;
+                Avatar blackAvatar;
+                Avatar playerAvatar = session.Player.Avatar;
+                Avatar opponentAvatar;
+                Session opponentSession = WorldManager.GetPlayerSession(playerSide.OpponentSide.PlayerName);
+                if (opponentSession == null)
+                    opponentAvatar = new Avatar(); //TODO : in case of AI, go fetch the AI avatar somewhere
+                else
+                    opponentAvatar = opponentSession.Player.Avatar;
+
+                if (playerSide.Color == PlayerColor.white)
+                {
+                    whiteAvatar = playerAvatar;
+                    blackAvatar = opponentAvatar;
+                }
+                else
+                {
+                    whiteAvatar = opponentAvatar;
+                    blackAvatar = playerAvatar;
+                }
+
                 var gameInfo = new PacketGameInfo()
                 {
                     White = battle.WhiteSide.PlayerName,
@@ -40,24 +61,8 @@ namespace RelentlessZero.Network.Handlers
                     GameId = 1,
                     roundTimerSeconds = battle.RoundTimeSeconds,
                     Phase = battle.Phase,
-                    WhiteAvatar = new PacketAvatar()
-                    {
-                        ProfileId = battle.WhiteSide.PlayerId,
-                        Head = 15,
-                        Body = 12,
-                        Leg = 11,
-                        ArmBack = 9,
-                        ArmFront = 13
-                    },
-                    BlackAvatar = new PacketAvatar()
-                    {
-                        ProfileId = battle.BlackSide.PlayerId,
-                        Head = 15,
-                        Body = 12,
-                        Leg = 11,
-                        ArmBack = 9,
-                        ArmFront = 13
-                    },
+                    WhiteAvatar = whiteAvatar,
+                    BlackAvatar = blackAvatar,
                     WhiteIdolTypes = new PacketIdolTypes()
                     {
                         ProfileId = battle.WhiteSide.PlayerId,

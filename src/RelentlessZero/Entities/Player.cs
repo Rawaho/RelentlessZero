@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using Newtonsoft.Json;
 using RelentlessZero.Managers;
 using RelentlessZero.Network;
 using System;
@@ -22,6 +23,22 @@ using System.Collections.Generic;
 
 namespace RelentlessZero.Entities
 {
+    public class Avatar
+    {
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+        [JsonProperty(PropertyName = "head")]
+        public int Head { get; set; }
+        [JsonProperty(PropertyName = "body")]
+        public int Body { get; set; }
+        [JsonProperty(PropertyName = "leg")]
+        public int Leg { get; set; }
+        [JsonProperty(PropertyName = "armBack")]
+        public int ArmBack { get; set; }
+        [JsonProperty(PropertyName = "armFront")]
+        public int ArmFront { get; set; }
+    }
+
     public class Player
     {
         public uint Id { get; set; }
@@ -33,6 +50,7 @@ namespace RelentlessZero.Entities
         public ushort Rating { get; set; }
         public PlayerFlags Flags { get; set; }
 
+        public Avatar Avatar { get; set; }
         public List<string> CurrentRooms { get; set; }
 
         public Player()
