@@ -38,7 +38,7 @@ namespace RelentlessZero.Network.Handlers
                 Resources = "DECAY,ENERGY",
                 Valid = true,
                 Updated = "Blablablah",
-                TimeStamp = 10 // TODO : check if timestamp is the last deck save time
+                TimeStamp = 10
             };
             toSend.Decks.Add(oneRandomDeck);
 

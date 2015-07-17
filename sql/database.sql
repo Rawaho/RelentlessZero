@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS `account_info` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `account_info` (`id`, `username`, `password`, `salt`, `adminRole`, `gold`, `shards`, `rating`, `flags`) VALUES
-    (1, 'Test', 'cdddc3c043b10e2c7f884fad2c290148cac1d68df5500ed1dc7168318f957f99', 'a215b8ef54892b21b0280a07f4005aae003a3fb0', 2, 2000, 0, 0, 3);
+    (1, 'Test', 'cdddc3c043b10e2c7f884fad2c290148cac1d68df5500ed1dc7168318f957f99', 'a215b8ef54892b21b0280a07f4005aae003a3fb0', 2, 2000, 0, 0, 3),
+    (2, 'Test2', 'cdddc3c043b10e2c7f884fad2c290148cac1d68df5500ed1dc7168318f957f99', 'a215b8ef54892b21b0280a07f4005aae003a3fb0', 2, 2000, 0, 0, 3);
 
 CREATE TABLE IF NOT EXISTS `scroll_ability_template` (
     `entry` smallint(5) unsigned NOT NULL DEFAULT '0',

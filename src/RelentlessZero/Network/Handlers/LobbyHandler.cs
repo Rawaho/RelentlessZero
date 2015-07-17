@@ -25,6 +25,128 @@ namespace RelentlessZero.Network.Handlers
 {
     public static class LobbyHandler
     {
+        [PacketHandler("GameChallengeAccept")]
+        public static void HandleGameChallengeAccept(object packet, Session session)
+        {
+            PacketGameChallengeAccept packetAccept = (PacketGameChallengeAccept)packet;
+
+            Session opponentSession;
+            WorldManager.GetPlayerSessionById(packetAccept.ProfileId, out opponentSession);
+            if (opponentSession != null)
+            {
+                if (BattleManager.Battles.ContainsKey(session.Player.Id))
+                    LogManager.Write("Lobby handler", "player {0} wants to play several quickmatches at once ! Not possible !", session.Player.Id);
+                else if (BattleManager.Battles.ContainsKey(opponentSession.Player.Id))
+                    LogManager.Write("Lobby handler", "player {0} wants to play several quickmatches at once ! Not possible !", opponentSession.Player.Id);
+                else
+                {
+                    BattleType[] typesToAbort = new BattleType[3] { BattleType.MP_QUICKMATCH, BattleType.MP_RANKED, BattleType.MP_LIMITED };
+                    foreach (BattleType battleType in typesToAbort)
+                    {
+                        var cancelQueue = new PacketGameMatchQueueStatus()
+                        {
+                            InQueue = false,
+                            GameType = battleType
+                        };
+                        session.Send(cancelQueue);
+                        opponentSession.Send(cancelQueue);
+                    }
+
+                    Battle newBattle = new Battle();
+                    Random random = new Random();
+                    PlayerColor challengerColor, challengedColor;
+                    if (random.Next(2) > 0)
+                    {
+                        challengerColor = PlayerColor.white;
+                        challengedColor = PlayerColor.black;
+                    }
+                    else
+                    {
+                        challengedColor = PlayerColor.white;
+                        challengerColor = PlayerColor.black;
+                    }
+
+                    BattleSide challengedSide = new BattleSide(session.Player.Id, session.Player.Username, challengedColor);
+                    BattleSide challengerSide = new BattleSide(opponentSession.Player.Id, opponentSession.Player.Username, challengerColor);
+                    challengedSide.OpponentSide = challengerSide;
+                    challengerSide.OpponentSide = challengedSide;
+                    newBattle.WhiteSide = challengerColor == PlayerColor.white ? challengerSide : challengedSide;
+                    newBattle.BlackSide = challengerColor == PlayerColor.black ? challengerSide : challengedSide;
+                    newBattle.Type = BattleType.MP_QUICKMATCH;
+
+                    BattleManager.Battles[session.Player.Id] = newBattle;
+                    BattleManager.Battles[opponentSession.Player.Id] = newBattle;
+
+                    var battleRedirect = new PacketBattleRedirect()
+                    {
+                        IP = ((IPEndPoint)session.Socket.LocalEndPoint).Address.ToString(),
+                        Port = (uint)ConfigManager.Config.Network.BattlePort
+                    };
+                    session.Send(battleRedirect);
+                    opponentSession.Send(battleRedirect);
+
+                    opponentSession.Send(new PacketOk() { Origin = "GameChallengeAccept" });
+
+                }
+            }
+        }
+
+        [PacketHandler("GameChallengeDecline")]
+        public static void HandleGameChallengeDecline(object packet, Session session)
+        {
+            PacketGameChallengeDecline packetRequest = (PacketGameChallengeDecline)packet;
+
+            Session opponentSession;
+            WorldManager.GetPlayerSessionById(packetRequest.ProfileId, out opponentSession);
+            if (opponentSession != null)
+            {
+                PacketGameChallengeResponse gameChallenge = new PacketGameChallengeResponse()
+                {
+                    From = new PacketProfile()
+                    {
+                        Id = opponentSession.Player.Id,
+                        Name = opponentSession.Player.Username,
+                        FeatureType = "PREMIUM",
+                        AdminRole = opponentSession.Player.AdminRole
+                    },
+                    To = new PacketProfile()
+                    {
+                        Id = session.Player.Id,
+                        Name = session.Player.Username,
+                        FeatureType = "PREMIUM",
+                        AdminRole = session.Player.AdminRole
+                    },
+                    Status = "DECLINE"
+                };
+                opponentSession.Send(gameChallenge);
+                session.Send(gameChallenge);
+            }
+        }
+
+        [PacketHandler("GameChallengeRequest")]
+        public static void HandleGameChallengeRequest(object packet, Session session)
+        {
+            PacketGameChallengeRequest packetRequest = (PacketGameChallengeRequest)packet;
+
+            Session opponentSession;
+            WorldManager.GetPlayerSessionById(packetRequest.ProfileId, out opponentSession);
+            if (opponentSession != null)
+            {
+                PacketGameChallenge gameChallenge = new PacketGameChallenge()
+                {
+                    From = new PacketProfile()
+                    {
+                        Id = session.Player.Id,
+                        Name = session.Player.Username,
+                        FeatureType = "PREMIUM",
+                        AdminRole = session.Player.AdminRole
+                    },
+                    IsParentalConsentNeeded = false
+                };
+                opponentSession.Send(gameChallenge);
+            }
+        }
+        
         [PacketHandler("PlaySinglePlayerQuickMatch")]
         public static void HandlePlaySinglePlayerQuickMatch(object packet, Session session)
         {

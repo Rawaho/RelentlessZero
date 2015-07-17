@@ -85,7 +85,7 @@ namespace RelentlessZero.Network
         public uint TimeStamp { get; set; }
     }
 
-    public class PacketIdolTypes // TODO : what is this for ?
+    public class PacketIdolTypes
     {
         [JsonProperty(PropertyName = "profileId")]
         public uint ProfileId { get; set; }
@@ -322,6 +322,55 @@ namespace RelentlessZero.Network
     [Packet("FirstConnect", PacketDirection.ClientToServer, SessionType.Lobby, false)]
     public class PacketFirstConnect : PacketConnect { }
 
+    [Packet("GameChallenge", PacketDirection.ServerToClient, SessionType.Lobby)]
+    public class PacketGameChallenge : PacketHeader
+    {
+        [JsonProperty(PropertyName = "from")]
+        public PacketProfile From { get; set; }
+        [JsonProperty(PropertyName = "isParentalConsentNeeded")]
+        public bool IsParentalConsentNeeded { get; set; }
+    }
+
+    [Packet("GameChallengeAccept", PacketDirection.ClientToServer, SessionType.Lobby)]
+    public class PacketGameChallengeAccept : PacketHeader
+    {
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+        [JsonProperty(PropertyName = "deck")]
+        public string Deck { get; set; }
+    }
+
+    [Packet("GameChallengeDecline", PacketDirection.ClientToServer, SessionType.Lobby)]
+    public class PacketGameChallengeDecline : PacketHeader
+    {
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+    }
+
+    [Packet("GameChallengeRequest", PacketDirection.ClientToServer, SessionType.Lobby)]
+    public class PacketGameChallengeRequest : PacketHeader
+    {
+        [JsonProperty(PropertyName = "customGameId")]
+        public int CustomGameId { get; set; }
+        [JsonProperty(PropertyName = "chooseDeck")]
+        public bool ChooseDeck { get; set; }
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+        [JsonProperty(PropertyName = "deck")]
+        public string Deck { get; set; }
+    }
+
+    [Packet("GameChallengeResponse", PacketDirection.ServerToClient, SessionType.Lobby)]
+    public class PacketGameChallengeResponse : PacketHeader
+    {
+        [JsonProperty(PropertyName = "from")]
+        public PacketProfile From { get; set; }
+        [JsonProperty(PropertyName = "to")]
+        public PacketProfile To { get; set; }
+        [JsonProperty(PropertyName = "status")]
+        public string Status { get; set; }
+    }
+
     [Packet("GameInfo", PacketDirection.ServerToClient, SessionType.Battle)]
     public class PacketGameInfo : PacketHeader
     {
@@ -359,7 +408,7 @@ namespace RelentlessZero.Network
         public Idol[] WhiteIdols { get; set; }
         [JsonProperty(PropertyName = "blackIdols")]
         public Idol[] BlackIdols { get; set; }
-        [JsonProperty(PropertyName = "refId")] //TODO : what's that ?
+        [JsonProperty(PropertyName = "refId")]
         public int RefId { get; set; }
         [JsonProperty(PropertyName = "maxTierRewardMultiplier")]
         public float MaxTierRewardMultiplier { get; set; }
