@@ -84,6 +84,12 @@ namespace RelentlessZero.Network.Handlers
         [PacketHandler("DeckSave")]
         public static void HandleDeckSave(object packet, Session session)
         {
+            if (session.Player.ValidatedDeck.Count == 0)
+            {
+                LogManager.Write("Player", "Player {0} tried to save a deck without validating it!", session.Player.Id);
+                return;
+            }
+
             // scrolls sent are completly ignored by server, saved scrolls from DeckValidate are used instead
             var packetDeckSaveCli = (PacketDeckSave)packet;
 
