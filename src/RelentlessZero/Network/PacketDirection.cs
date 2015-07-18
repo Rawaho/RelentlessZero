@@ -19,22 +19,10 @@ using System;
 
 namespace RelentlessZero.Network
 {
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-    public class PacketAttribute : Attribute
+    [Flags]
+    public enum PacketDirection
     {
-        public string Name { get; set; }
-        public PacketDirection Direction { get; set; }
-        public SessionType SessionType { get; set; }
-        public bool AuthRequired { get; set; }
-
-        public bool HasDirection(PacketDirection direction) { return (Direction & direction) != 0; }
-
-        public PacketAttribute(string name, PacketDirection direction, SessionType sessionType = SessionType.None, bool authRequired = true)
-        {
-            Name         = name;
-            Direction    = direction;
-            SessionType  = sessionType;
-            AuthRequired = authRequired;
-        }
+        ClientToServer = 0x01,
+        ServerToClient = 0x02
     }
 }

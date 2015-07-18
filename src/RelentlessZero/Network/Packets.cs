@@ -22,13 +22,6 @@ using System.Collections.Generic;
 
 namespace RelentlessZero.Network
 {
-    public enum PacketDirection
-    {
-        ClientToServer,
-        ServerToClient,
-        Bidirectional
-    }
-
     public class PacketHeader
     {
         [JsonProperty(PropertyName = "msg")]
@@ -128,7 +121,7 @@ namespace RelentlessZero.Network
         public string AuthHash { get; set; }
     }
 
-    [Packet("DeckCards", PacketDirection.Bidirectional, SessionType.Lobby)]
+    [Packet("DeckCards", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketDeckCards : PacketHeader
     {
         [JsonProperty(PropertyName = "deck")]
@@ -144,7 +137,7 @@ namespace RelentlessZero.Network
         public string Name { get; set; }
     }
 
-    [Packet("DeckList", PacketDirection.Bidirectional, SessionType.Lobby)]
+    [Packet("DeckList", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketDeckList : PacketHeader
     {
         [JsonProperty(PropertyName = "decks")]
@@ -160,7 +153,7 @@ namespace RelentlessZero.Network
         public List<ulong> Scrolls { get; set; }
     }
 
-    [Packet("DeckValidate", PacketDirection.Bidirectional, SessionType.Lobby)]
+    [Packet("DeckValidate", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketDeckValidate : PacketHeader
     {
         [JsonProperty(PropertyName = "cards", NullValueHandling = NullValueHandling.Ignore)]
@@ -169,7 +162,7 @@ namespace RelentlessZero.Network
         public List<string> Errors { get; set; }
     }
 
-    [Packet("DidYouKnow", PacketDirection.Bidirectional, SessionType.Lobby, false)]
+    [Packet("DidYouKnow", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby, false)]
     public class PacketDidYouKnow : PacketHeader
     {
         [JsonProperty(PropertyName = "id")]
@@ -196,7 +189,7 @@ namespace RelentlessZero.Network
     [Packet("JoinLobby", PacketDirection.ClientToServer, SessionType.Lobby)]
     public class PacketJoinLobby { }
 
-    [Packet("LibraryView", PacketDirection.Bidirectional, SessionType.Lobby)]
+    [Packet("LibraryView", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketLibraryView : PacketHeader
     {
         [JsonProperty(PropertyName = "profileId")]
@@ -205,7 +198,7 @@ namespace RelentlessZero.Network
         public List<ScrollInstance> Cards { get; set; }
     }
 
-    [Packet("LobbyLookup", PacketDirection.Bidirectional, SessionType.Lookup, false)]
+    [Packet("LobbyLookup", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lookup, false)]
     public class PacketLobbyLookup : PacketHeader
     {
         [JsonProperty(PropertyName = "ip")]
@@ -221,7 +214,7 @@ namespace RelentlessZero.Network
         public string Origin { get; set; }
     }
 
-    [Packet("OverallStats", PacketDirection.Bidirectional, SessionType.Lobby)]
+    [Packet("OverallStats", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketOverallStats : PacketHeader
     {
         [JsonProperty(PropertyName = "loginsLast24h")]
@@ -238,7 +231,7 @@ namespace RelentlessZero.Network
         public string[] WeeklyWinners { get; set; }
     }
 
-    [Packet("Ping", PacketDirection.Bidirectional, SessionType.Lookup | SessionType.Lobby | SessionType.Battle, false)]
+    [Packet("Ping", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lookup | SessionType.Lobby | SessionType.Battle, false)]
     public class PacketPing : PacketHeader
     {
         [JsonProperty(PropertyName = "time")]
@@ -259,7 +252,7 @@ namespace RelentlessZero.Network
         public PacketProfile Profile { get; set; }
     }
 
-    [Packet("RoomChatMessage", PacketDirection.Bidirectional, SessionType.Lobby)]
+    [Packet("RoomChatMessage", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketRoomChatMessage : PacketHeader
     {
         [JsonProperty(PropertyName = "roomName")]
@@ -270,7 +263,7 @@ namespace RelentlessZero.Network
         public string Text { get; set; }
     }
 
-    [Packet("RoomEnter", PacketDirection.Bidirectional, SessionType.Lobby)]
+    [Packet("RoomEnter", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketRoomEnter : PacketHeader
     {
         [JsonProperty(PropertyName = "roomName")]
@@ -303,7 +296,7 @@ namespace RelentlessZero.Network
         public List<PacketRoomInfoProfile> Removed { get; set; }
     }
 
-    [Packet("RoomsList", PacketDirection.Bidirectional, SessionType.Lobby)]
+    [Packet("RoomsList", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketRoomsList : PacketHeader
     {
         [JsonProperty(PropertyName = "rooms")]

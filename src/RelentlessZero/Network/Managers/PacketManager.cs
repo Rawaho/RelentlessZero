@@ -69,32 +69,13 @@ namespace RelentlessZero.Network
                         Type         = type
                     };
 
-                    switch (packetAttribute.Direction)
-                    {
-                        case PacketDirection.ClientToServer:
-                        {
-                            if (!clientToServerPackets.ContainsKey(packetAttribute.Name))
-                                clientToServerPackets[packetAttribute.Name] = packetInfo;
-                            break;
-                        }
-                        case PacketDirection.ServerToClient:
-                        {
-                            if (!serverToClientPackets.ContainsKey(type))
-                                serverToClientPackets[type] = packetInfo;
-                            break;
-                        }
-                        case PacketDirection.Bidirectional:
-                        {
-                            if (!clientToServerPackets.ContainsKey(packetAttribute.Name)
-                                && !serverToClientPackets.ContainsKey(type))
-                            {
-                                clientToServerPackets[packetAttribute.Name] = packetInfo;
-                                serverToClientPackets[type] = packetInfo;
-                            }
+                    if (packetAttribute.HasDirection(PacketDirection.ClientToServer))
+                        if (!clientToServerPackets.ContainsKey(packetAttribute.Name))
+                            clientToServerPackets[packetAttribute.Name] = packetInfo;
 
-                            break;
-                        }
-                    }
+                    if (packetAttribute.HasDirection(PacketDirection.ServerToClient))
+                        if (!serverToClientPackets.ContainsKey(type))
+                            serverToClientPackets[type] = packetInfo;
 
                     packetCount++;
                 }
