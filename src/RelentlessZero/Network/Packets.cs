@@ -385,15 +385,18 @@ namespace RelentlessZero.Network
     [Packet("GameInfo", PacketDirection.ServerToClient, SessionType.Battle)]
     public class PacketGameInfo : PacketHeader
     {
-        [JsonProperty(PropertyName = "white")] // name of left player
+        [JsonProperty(PropertyName = "white")]
         public string White { get; set; }
-        [JsonProperty(PropertyName = "black")] // name of right player
+        [JsonProperty(PropertyName = "black")]
         public string Black { get; set; }
         [JsonProperty(PropertyName = "gameType")]
         [JsonConverter(typeof(StringEnumConverter))]
         public BattleType GameType { get; set; }
         [JsonProperty(PropertyName = "gameId")]
-        public uint GameId { get; set; } // probably id of battle instance
+        public uint GameId { get; set; }
+        [JsonProperty(PropertyName = "color")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public PlayerColor Color { get; set; }
         [JsonProperty(PropertyName = "roundTimerSeconds")]
         public int roundTimerSeconds { get; set; }
         [JsonProperty(PropertyName = "phase")]
