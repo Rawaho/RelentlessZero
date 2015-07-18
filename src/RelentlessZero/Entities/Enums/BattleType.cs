@@ -22,6 +22,7 @@ namespace RelentlessZero.Entities
         SP_QUICKMATCH,
         MP_QUICKMATCH,
         MP_RANKED,
-        MP_LIMITED
+        MP_LIMITED,
+        MP_UNRANKED // challenges
     }
 }

@@ -28,20 +28,21 @@ namespace RelentlessZero.Network.Handlers
         [PacketHandler("JoinBattle")]
         public static void HandleJoinBattle(object packet, Session session)
         {
+            // TODO : handle better AI avatar
             Battle battle;
             if (BattleManager.Battles.TryGetValue(session.Player.Id, out battle) && WorldManager.AddPlayerSession(session))
             {
                 BattleSide playerSide = battle.FindSideByUsername(session.Player.Username);
-                Avatar whiteAvatar;
-                Avatar blackAvatar;
                 Avatar playerAvatar = session.Player.Avatar;
                 Avatar opponentAvatar;
                 Session opponentSession = WorldManager.GetPlayerSession(playerSide.OpponentSide.PlayerName);
                 if (opponentSession == null)
-                    opponentAvatar = new Avatar(); //TODO : in case of AI, go fetch the AI avatar somewhere
+                    opponentAvatar = new Avatar();
                 else
                     opponentAvatar = opponentSession.Player.Avatar;
 
+                Avatar whiteAvatar;
+                Avatar blackAvatar;
                 if (playerSide.Color == PlayerColor.white)
                 {
                     whiteAvatar = playerAvatar;
@@ -59,6 +60,7 @@ namespace RelentlessZero.Network.Handlers
                     Black = battle.BlackSide.PlayerName,
                     GameType = battle.Type,
                     GameId = 1,
+                    Color = playerSide.Color,
                     roundTimerSeconds = battle.RoundTimeSeconds,
                     Phase = battle.Phase,
                     WhiteAvatar = whiteAvatar,

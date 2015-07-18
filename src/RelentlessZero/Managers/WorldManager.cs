@@ -20,6 +20,7 @@ using RelentlessZero.Entities;
 using RelentlessZero.Network;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace RelentlessZero.Managers
@@ -33,22 +34,6 @@ namespace RelentlessZero.Managers
         {
             sessionCounter = 0;
             sessionMap = new ConcurrentDictionary<string, Session>();
-        }
-
-        public static bool GetPlayerSessionById(uint id, out Session outValue)
-        {
-            // TODO : TEMP maintain another session array by id ?
-            var nameResult = DatabaseManager.Database.Select("SELECT `username` FROM `account_info` WHERE `id` = ?", id);
-            if (nameResult != null)
-            {
-                outValue = GetPlayerSession(nameResult.Read<string>(0, "username"));
-                return outValue != null;
-            }
-            else
-            {
-                outValue = null;
-                return false;
-            }
         }
 
         public static bool AddPlayerSession(Session session)
@@ -99,6 +84,18 @@ namespace RelentlessZero.Managers
             sessionMap.TryGetValue(name, out session);
 
             return session;
+        }
+
+        public static Session GetPlayerSessionById(uint id)
+        {
+            foreach (KeyValuePair<string, Session> itSession in sessionMap)
+            {
+                if (itSession.Value.Player.Id == id)
+                {
+                    return itSession.Value;
+                }
+            }
+            return null;
         }
 
         public static bool IsPlayerOnline(string name)
