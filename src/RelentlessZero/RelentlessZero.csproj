@@ -60,9 +60,13 @@
     <Compile Include="Database\SqlResult.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Entities\AvatarPartTemplate.cs" />
     <Compile Include="Entities\Battle.cs" />
     <Compile Include="Entities\Deck.cs" />
     <Compile Include="Entities\Enums\AdminRole.cs" />
+    <Compile Include="Entities\Enums\AvatarPartName.cs" />
+    <Compile Include="Entities\Enums\AvatarPartRarity.cs" />
+    <Compile Include="Entities\Enums\AvatarPartSet.cs" />
     <Compile Include="Entities\Enums\BattlePhase.cs" />
     <Compile Include="Entities\Enums\BattleType.cs" />
     <Compile Include="Entities\Enums\DamageType.cs" />

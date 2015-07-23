@@ -92,6 +92,7 @@ namespace RelentlessZero.Network.Handlers
                     if (packetName == "FirstConnect")
                     {
                         session.SendString(AssetManager.ScrollTemplateCache);
+                        session.SendString(AssetManager.AvatarPartTemplateCache);
 
                         // TODO: send other assets here...
                         // session.SendString("{\"type\":\"GROWTH_START_DECK\",\"msg\":\"Message\"}");

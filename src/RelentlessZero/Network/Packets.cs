@@ -213,6 +213,13 @@ namespace RelentlessZero.Network
     [Packet("ActivateGame", PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketActivateGame : PacketHeader { }
 
+    [Packet("AvatarTypes", PacketDirection.ServerToClient, SessionType.Lobby)]
+    public class PacketAvatarTypes : PacketHeader
+    {
+        [JsonProperty(PropertyName = "types")]
+        public List<AvatarPartTemplate> Types { get; set; }
+    }
+
     [Packet("BattleRedirect", PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketBattleRedirect : PacketHeader
     {

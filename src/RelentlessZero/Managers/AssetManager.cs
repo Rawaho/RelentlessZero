@@ -29,6 +29,7 @@ namespace RelentlessZero.Managers
     public static class AssetManager
     {
         public static string ScrollTemplateCache { get; set; }
+        public static string AvatarPartTemplateCache { get; set; }
 
         // asset counters
         private static object scrollInstanceIdLock;
@@ -42,7 +43,9 @@ namespace RelentlessZero.Managers
         private static List<TagTemplate> tagTemplateStore;
 
         // scroll template stores
-        public static List<ScrollTemplate> ScrollTemplateStore;
+        public static List<ScrollTemplate> ScrollTemplateStore { get; set; }
+
+        public static List<AvatarPartTemplate> AvatarPartTemplateStore { get; set; }
 
         public static void LoadAssets()
         {
@@ -55,8 +58,67 @@ namespace RelentlessZero.Managers
             // must be loaded after ability, passive and tag templates!
             LoadScrollTemplates();
 
-            // cache card type packet
+            LoadAvatarPartTemplates();
+
+            // cache packet data
             CacheCardTypeData();
+            CacheAvatarTypeData();
+        }
+
+        private static void LoadAvatarPartTemplates()
+        {
+            DateTime startTime = DateTime.Now;
+            AvatarPartTemplateStore = new List<AvatarPartTemplate>();
+
+            var avatarPartResult = DatabaseManager.Database.Select("SELECT `entry`, `type`, `part`, `filename`, `set` FROM `avatar_part_template`");
+            if (avatarPartResult != null)
+            {
+                for (int i = 0; i < avatarPartResult.Count; i++)
+                {
+                    var avatarPartTemplate = new AvatarPartTemplate();
+                    avatarPartTemplate.Entry    = avatarPartResult.Read<ushort>(i, "entry");
+                    avatarPartTemplate.Type     = avatarPartResult.Read<AvatarPartRarity>(i, "type");
+                    avatarPartTemplate.Part     = avatarPartResult.Read<AvatarPartName>(i, "part");
+                    avatarPartTemplate.Filename = avatarPartResult.Read<string>(i, "filename");
+                    avatarPartTemplate.Set      = avatarPartResult.Read<AvatarPartSet>(i, "set");
+
+                    if (avatarPartTemplate.Type > AvatarPartRarity.STORE)
+                    {
+                        LogManager.Write("Asset Manager", "Failed to load avatar part template {0}, template has invalid avatar part type {1}!",
+                            avatarPartTemplate.Entry, avatarPartTemplate.Type);
+                        continue;
+                    }
+
+                    if (avatarPartTemplate.Part >= AvatarPartName.INVALID)
+                    {
+                        LogManager.Write("Asset Manager", "Failed to load avatar part template {0}, template has invalid avatar part name {1}!",
+                            avatarPartTemplate.Entry, avatarPartTemplate.Part);
+                        continue;
+                    }
+
+                    if (avatarPartTemplate.Set > AvatarPartSet.FEMALE_1)
+                    {
+                        LogManager.Write("Asset Manager", "Failed to load avatar part template {0}, template has invalid avatar set {1}!",
+                            avatarPartTemplate.Entry, avatarPartTemplate.Set);
+                        continue;
+                    }
+
+                    AvatarPartTemplateStore.Add(avatarPartTemplate);
+                }
+            }
+
+            LogManager.Write("Asset Manager", "Loaded {0} avatar part(s) from database {1} milliseconds(s).", AvatarPartTemplateStore.Count, (DateTime.Now - startTime).Milliseconds);
+        }
+
+        private static void CacheAvatarTypeData()
+        {
+            var cardTypes = new PacketAvatarTypes
+            {
+                Msg   = "AvatarTypes",
+                Types = AvatarPartTemplateStore
+            };
+
+            AvatarPartTemplateCache = JsonConvert.SerializeObject(cardTypes);
         }
 
         private static void LoadAbilityTemplates()
@@ -323,13 +385,15 @@ namespace RelentlessZero.Managers
             var cardTypes = new PacketCardTypes
             {
                 Msg       = "CardTypes",
-                CardTypes = new List<ScrollTemplate>()
+                CardTypes = ScrollTemplateStore
             };
 
-            foreach (var scrollTemplate in ScrollTemplateStore)
-                cardTypes.CardTypes.Add(scrollTemplate);
-
             ScrollTemplateCache = JsonConvert.SerializeObject(cardTypes);
+        }
+
+        public static AvatarPartTemplate GetAvatarPartTemplate(ushort entry)
+        {
+            return AvatarPartTemplateStore.SingleOrDefault(avatarPart => avatarPart.Entry == entry);
         }
 
         public static ScrollTemplate GetScrollTemplate(ushort entry)
