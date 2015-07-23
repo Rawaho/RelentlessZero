@@ -34,34 +34,6 @@ namespace RelentlessZero.Network
     // Sub Packet Structures
     // ----------------------------------------------------------------
 
-    public class PacketCard
-    {
-        [JsonProperty(PropertyName = "id")]
-        public uint Id { get; set; }
-        [JsonProperty(PropertyName = "typeId")]
-        public uint TypeId { get; set; }
-        [JsonProperty(PropertyName = "tradable")]
-        public bool Tradable { get; set; }
-        [JsonProperty(PropertyName = "isToken")]
-        public bool IsToken { get; set; }
-        [JsonProperty(PropertyName = "level")]
-        public uint Level { get; set; }
-    }
-
-    public class PacketDeck
-    {
-        [JsonProperty(PropertyName = "name")]
-        public string Name { get; set; }
-        [JsonProperty(PropertyName = "resources")]
-        public string Resources { get; set; }
-        [JsonProperty(PropertyName = "valid")]
-        public bool Valid { get; set; }
-        [JsonProperty(PropertyName = "updated")]
-        public string Updated { get; set; }
-        [JsonProperty(PropertyName = "timestamp")]
-        public uint TimeStamp { get; set; }
-    }
-
     public class PacketIdolTypes
     {
         [JsonProperty(PropertyName = "profileId")]
@@ -339,7 +311,7 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "from")]
         public PacketProfile From { get; set; }
         [JsonProperty(PropertyName = "isParentalConsentNeeded")]
-        public bool IsParentalConsentNeeded { get; set; }
+        public bool ParentalConsent { get; set; }
     }
 
     [Packet("GameChallengeAccept", PacketDirection.ClientToServer, SessionType.Lobby)]
@@ -428,7 +400,6 @@ namespace RelentlessZero.Network
         public float MaxTierRewardMultiplier { get; set; }
         [JsonProperty(PropertyName = "tierRewardMultiplierDelta")]
         public List<float> TierRewardMultiplierDelta { get; set; }
-
     }
 
     [Packet("GameMatchQueueStatus", PacketDirection.ServerToClient, SessionType.Lobby)]
@@ -439,7 +410,6 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "gameType")]
         [JsonConverter(typeof(StringEnumConverter))]
         public BattleType GameType { get; set; }
-
     }
 
     [Packet("JoinLobby", PacketDirection.ClientToServer, SessionType.Lobby)]

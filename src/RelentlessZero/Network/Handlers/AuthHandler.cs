@@ -56,14 +56,13 @@ namespace RelentlessZero.Network.Handlers
             }
 
             // handle initial profile data from database
-            SqlResult accountResult = DatabaseManager.Database.Select("SELECT id, username, password, salt, adminRole, flags FROM account_info WHERE username = ?", username);
+            SqlResult accountResult = DatabaseManager.Database.Select("SELECT id, password, salt, adminRole, flags FROM account_info WHERE username = ?", username);
             if (accountResult == null || accountResult.Count > 1)
             {
                 LogManager.Write("Authentication", "Failed to lookup account {0} requested by session {1}!", username, session.IpAddress);
                 session.SendFatalFailPacket(packetName, "Internal Error: Failed to lookup account information!");
                 return;
             }
-
 
             AuthStatus authStatus = AuthStatus.InvalidCredentials;
             if (accountResult.Count == 1)
@@ -73,46 +72,19 @@ namespace RelentlessZero.Network.Handlers
                 authStatus = GetAuthStatus(accountId, accountResult.Read<string>(0, "password"), accountResult.Read<string>(0, "salt"), username, password);
                 if (authStatus == AuthStatus.Ok)
                 {
-                    AdminRole adminRole = accountResult.Read<AdminRole>(0, "adminRole");
-                    string usernameDatabase = accountResult.Read<string>(0, "username");
-
-                    // avatar loading
-                    Avatar playerAvatar = new Avatar();
-                    playerAvatar.ProfileId = accountId;
-                    SqlResult avatarResult = DatabaseManager.Database.Select("SELECT head, body, leg, armBack, armFront FROM account_avatar WHERE id = ?", accountId);
-                    if (avatarResult.Count == 1)
-                    {
-                        playerAvatar.Head = avatarResult.Read<int>(0, "head");
-                        playerAvatar.Body = avatarResult.Read<int>(0, "body");
-                        playerAvatar.Leg = avatarResult.Read<int>(0, "leg");
-                        playerAvatar.ArmBack = avatarResult.Read<int>(0, "armBack");
-                        playerAvatar.ArmFront = avatarResult.Read<int>(0, "armFront");
-                    }
-                    else
-                    {
-                        LogManager.Write("HandleConnect", "user {0} has no avatar data!", username);
-                    }
-
                     session.Player = new Player()
                     {
                         Id        = accountId,
                         Session   = session,
-                        Username  = usernameDatabase,
-                        AdminRole = adminRole,
+                        Username  = username,
+                        AdminRole = accountResult.Read<AdminRole>(0, "adminRole"),
                         Flags     = accountResult.Read<PlayerFlags>(0, "flags"),
-                        Avatar    = playerAvatar
                     };
 
                     // send initial profile data to client
                     var profileInfo = new PacketProfileInfo
                     {
-                        Profile = new PacketProfile
-                        {
-                            Id          = accountId,
-                            Name        = usernameDatabase,
-                            AdminRole   = adminRole,
-                            FeatureType = "PREMIUM"
-                        }
+                        Profile = session.Player.GeneratePacketProfile()
                     };
 
                     session.Send(profileInfo);
@@ -227,11 +199,31 @@ namespace RelentlessZero.Network.Handlers
 
             session.Send(profileDataInfo);
 
+            player.Avatar.Id = player.Id;
+
             // handle first login
             if (player.HasFlag(PlayerFlags.FirstLogin))
             {
-                player.RemoveFlag(PlayerFlags.FirstLogin);
                 player.GiveAllScrolls();
+
+                // default avatar pieces
+                player.Avatar.SetAvatar(33, 10, 41, 4, 15);
+                player.Avatar.SaveAvatar();
+
+                player.RemoveFlag(PlayerFlags.FirstLogin);
+            }
+            else
+            {
+                // load avatar information
+                SqlResult avatarResult = DatabaseManager.Database.Select("SELECT `head`, `body`, `leg`, `armBack`, `armFront` FROM `account_avatar` WHERE `id` = ?", player.Id);
+                if (avatarResult == null || avatarResult.Count == 0)
+                {
+                    session.SendFatalFailPacket("JoinLobby", "Failed to lookup account avatar information!");
+                    return;
+                }
+
+                player.Avatar.SetAvatar(avatarResult.Read<uint>(0, "head"), avatarResult.Read<uint>(0, "body"),
+                    avatarResult.Read<uint>(0, "leg"), avatarResult.Read<uint>(0, "armBack"), avatarResult.Read<uint>(0, "armFront"));
             }
 
             player.LoadScrolls();

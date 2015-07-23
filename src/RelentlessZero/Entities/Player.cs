@@ -29,17 +29,35 @@ namespace RelentlessZero.Entities
     public class Avatar
     {
         [JsonProperty(PropertyName = "profileId")]
-        public uint ProfileId { get; set; }
+        public uint Id { get; set; }
         [JsonProperty(PropertyName = "head")]
-        public int Head { get; set; }
+        public uint Head { get; set; }
         [JsonProperty(PropertyName = "body")]
-        public int Body { get; set; }
+        public uint Body { get; set; }
         [JsonProperty(PropertyName = "leg")]
-        public int Leg { get; set; }
+        public uint Leg { get; set; }
         [JsonProperty(PropertyName = "armBack")]
-        public int ArmBack { get; set; }
+        public uint ArmBack { get; set; }
         [JsonProperty(PropertyName = "armFront")]
-        public int ArmFront { get; set; }
+        public uint ArmFront { get; set; }
+
+        public void SetAvatar(uint head, uint body, uint leg, uint armBack, uint armFront)
+        {
+            Head     = head;
+            Body     = body;
+            Leg      = leg;
+            ArmBack  = armBack;
+            ArmFront = armFront;
+        }
+
+        public void SaveAvatar()
+        {
+            string query = "INSERT INTO `account_avatar` (`id`, `head`, `body`, `leg`, `armBack`, `armFront`) VALUES(?, ?, ?, ?, ?, ?) " +
+                    "ON DUPLICATE KEY UPDATE `head` = VALUES(`head`), `body` = VALUES(`body`), `leg` = VALUES(`leg`), " + 
+                    "`armBack` = VALUES(`armBack`), `armFront` = VALUES(`armFront`);";
+
+            DatabaseManager.Database.Execute(query, Id, Head, Body, Leg, ArmBack, ArmFront);
+        }
     }
 
     public class Player
@@ -65,6 +83,7 @@ namespace RelentlessZero.Entities
             Scrolls       = new List<ScrollInstance>();
             Decks         = new List<Deck>();
             ValidatedDeck = new List<ulong>();
+            Avatar        = new Avatar();
         }
 
         public void OnDisconnect()
@@ -81,6 +100,19 @@ namespace RelentlessZero.Entities
 
         public ScrollInstance GetScroll(ulong id) { return Scrolls.SingleOrDefault(scroll => scroll.Id == id); }
         public Deck GetDeck(string name) { return Decks.SingleOrDefault(deck => deck.Name == name); }
+
+        public PacketProfile GeneratePacketProfile()
+        {
+            var packetProfile = new PacketProfile()
+            {
+                Id          = Id,
+                Name        = Username,
+                FeatureType = "PREMIUM",
+                AdminRole   = AdminRole
+            };
+
+            return packetProfile;
+        }
 
         public PacketRoomInfoProfile GenerateRoomInfoProfile()
         {

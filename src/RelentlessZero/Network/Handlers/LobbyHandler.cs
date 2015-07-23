@@ -28,9 +28,9 @@ namespace RelentlessZero.Network.Handlers
         [PacketHandler("GameChallengeAccept")]
         public static void HandleGameChallengeAccept(object packet, Session session)
         {
-            PacketGameChallengeAccept packetAccept = (PacketGameChallengeAccept)packet;
+            var gameChallangeAccept = (PacketGameChallengeAccept)packet;
 
-            Session opponentSession = WorldManager.GetPlayerSessionById(packetAccept.ProfileId);
+            Session opponentSession = WorldManager.GetPlayerSession(gameChallangeAccept.ProfileId);
             if (opponentSession != null)
             {
                 if (BattleManager.Battles.ContainsKey(session.Player.Id))
@@ -39,7 +39,8 @@ namespace RelentlessZero.Network.Handlers
                     LogManager.Write("Lobby handler", "player {0} wants to play several quickmatches at once ! Not possible !", opponentSession.Player.Id);
                 else
                 {
-                    BattleType[] typesToAbort = new BattleType[3] { BattleType.MP_QUICKMATCH, BattleType.MP_RANKED, BattleType.MP_LIMITED };
+                    // TODO: handle this better
+                    /*BattleType[] typesToAbort = new BattleType[3] { BattleType.MP_QUICKMATCH, BattleType.MP_RANKED, BattleType.MP_LIMITED };
                     foreach (BattleType battleType in typesToAbort)
                     {
                         var cancelQueue = new PacketGameMatchQueueStatus()
@@ -49,30 +50,18 @@ namespace RelentlessZero.Network.Handlers
                         };
                         session.Send(cancelQueue);
                         opponentSession.Send(cancelQueue);
-                    }
+                    }*/
 
                     PacketGameChallengeResponse gameChallenge = new PacketGameChallengeResponse()
                     {
-                        From = new PacketProfile()
-                        {
-                            Id = opponentSession.Player.Id,
-                            Name = opponentSession.Player.Username,
-                            FeatureType = "PREMIUM",
-                            AdminRole = opponentSession.Player.AdminRole
-                        },
-                        To = new PacketProfile()
-                        {
-                            Id = session.Player.Id,
-                            Name = session.Player.Username,
-                            FeatureType = "PREMIUM",
-                            AdminRole = session.Player.AdminRole
-                        },
+                        From   = opponentSession.Player.GeneratePacketProfile(),
+                        To     = session.Player.GeneratePacketProfile(),
                         Status = "ACCEPT"
                     };
-                    opponentSession.Send(gameChallenge);
-                    session.Send(new PacketOk() { Origin = "GameChallengeAccept" });
 
-                    Battle newBattle = new Battle();
+                    opponentSession.Send(gameChallenge);
+                    session.SendOkPacket("GameChallengeAccept");
+
                     Random random = new Random();
                     PlayerColor challengerColor, challengedColor;
                     if (random.Next(2) > 0)
@@ -86,13 +75,13 @@ namespace RelentlessZero.Network.Handlers
                         challengerColor = PlayerColor.black;
                     }
 
+                    Battle newBattle = new Battle(BattleType.MP_UNRANKED);
                     BattleSide challengedSide = new BattleSide(session.Player.Id, session.Player.Username, challengedColor);
                     BattleSide challengerSide = new BattleSide(opponentSession.Player.Id, opponentSession.Player.Username, challengerColor);
                     challengedSide.OpponentSide = challengerSide;
                     challengerSide.OpponentSide = challengedSide;
                     newBattle.WhiteSide = challengerColor == PlayerColor.white ? challengerSide : challengedSide;
                     newBattle.BlackSide = challengerColor == PlayerColor.black ? challengerSide : challengedSide;
-                    newBattle.Type = BattleType.MP_UNRANKED;
 
                     BattleManager.Battles[session.Player.Id] = newBattle;
                     BattleManager.Battles[opponentSession.Player.Id] = newBattle;
@@ -112,64 +101,60 @@ namespace RelentlessZero.Network.Handlers
         [PacketHandler("GameChallengeDecline")]
         public static void HandleGameChallengeDecline(object packet, Session session)
         {
-            PacketGameChallengeDecline packetDecline = (PacketGameChallengeDecline)packet;
+            var gameChallengeDecline = (PacketGameChallengeDecline)packet;
 
-            Session opponentSession = WorldManager.GetPlayerSessionById(packetDecline.ProfileId);
-            if (opponentSession != null)
+            var opponentSession = WorldManager.GetPlayerSession(gameChallengeDecline.ProfileId);
+            if (opponentSession == null)
             {
-                PacketGameChallengeResponse gameChallenge = new PacketGameChallengeResponse()
-                {
-                    From = new PacketProfile()
-                    {
-                        Id = opponentSession.Player.Id,
-                        Name = opponentSession.Player.Username,
-                        FeatureType = "PREMIUM",
-                        AdminRole = opponentSession.Player.AdminRole
-                    },
-                    To = new PacketProfile()
-                    {
-                        Id = session.Player.Id,
-                        Name = session.Player.Username,
-                        FeatureType = "PREMIUM",
-                        AdminRole = session.Player.AdminRole
-                    },
-                    Status = "DECLINE"
-                };
-                opponentSession.Send(gameChallenge);
-                session.Send(gameChallenge);
+                LogManager.Write("Player", "Player {0} tried to decline challange non existant player {1} to a battle!",
+                    session.Player.Id, gameChallengeDecline.ProfileId);
             }
+
+            var packetGameChallengeResponse = new PacketGameChallengeResponse()
+            {
+                From   = opponentSession.Player.GeneratePacketProfile(),
+                To     = session.Player.GeneratePacketProfile(),
+                Status = "DECLINE"
+            };
+
+            opponentSession.Send(packetGameChallengeResponse);
+            session.Send(packetGameChallengeResponse);
         }
 
         [PacketHandler("GameChallengeRequest")]
         public static void HandleGameChallengeRequest(object packet, Session session)
         {
-            PacketGameChallengeRequest packetRequest = (PacketGameChallengeRequest)packet;
+            var gameChallengeRequest = (PacketGameChallengeRequest)packet;
 
-            Session opponentSession = WorldManager.GetPlayerSessionById(packetRequest.ProfileId);
-            if (opponentSession != null)
+            var opponentSession = WorldManager.GetPlayerSession(gameChallengeRequest.ProfileId);
+            if (opponentSession == null)
             {
-                PacketGameChallenge gameChallenge = new PacketGameChallenge()
-                {
-                    From = new PacketProfile()
-                    {
-                        Id = session.Player.Id,
-                        Name = session.Player.Username,
-                        FeatureType = "PREMIUM",
-                        AdminRole = session.Player.AdminRole
-                    },
-                    IsParentalConsentNeeded = false
-                };
-                opponentSession.Send(gameChallenge);
-                session.Send(new PacketOk() { Origin = "GameChallengeRequest" });
+                LogManager.Write("Player", "Player {0} tried to challange non existant player {1} to a battle!",
+                    session.Player.Id, gameChallengeRequest.ProfileId);
+                return;
             }
+
+            var packetGameChallenge = new PacketGameChallenge()
+            {
+                From            = session.Player.GeneratePacketProfile(),
+                ParentalConsent = false
+            };
+
+            opponentSession.Send(packetGameChallenge);
+            session.SendOkPacket("GameChallengeRequest");
         }
         
         [PacketHandler("PlaySinglePlayerQuickMatch")]
         public static void HandlePlaySinglePlayerQuickMatch(object packet, Session session)
         {
-            // TODO : handle AI robot name and deck
+            if (BattleManager.Battles.ContainsKey(session.Player.Id))
+            {
+                LogManager.Write("Player", "Player {0} wants to play several skirmish at once ! Not possible !", session.Player.Id);
+                return;
+            }
 
-            BattleType[] typesToAbort = new BattleType[3] {BattleType.MP_QUICKMATCH, BattleType.MP_RANKED, BattleType.MP_LIMITED};
+            // TODO : handle this better
+            /*BattleType[] typesToAbort = new BattleType[3] {BattleType.MP_QUICKMATCH, BattleType.MP_RANKED, BattleType.MP_LIMITED};
 
             foreach (BattleType battleType in typesToAbort)
             {
@@ -179,25 +164,23 @@ namespace RelentlessZero.Network.Handlers
                     GameType = battleType
                 };
                 session.Send(cancelQueue);
-            }
+            }*/
 
-            if (BattleManager.Battles.ContainsKey(session.Player.Id))
-                LogManager.Write("Lobby handler", "player {0} wants to play several skirmish at once ! Not possible !", session.Player.Id);
-            
-            Battle newBattle = new Battle();
+            // TODO : handle AI robot name and deck
+            var newBattle = new Battle(BattleType.SP_QUICKMATCH);
             newBattle.WhiteSide = new BattleSide(session.Player.Id, session.Player.Username, PlayerColor.white);
             newBattle.BlackSide = new BattleSide(UInt16.MaxValue, "Easy AI", PlayerColor.black);
             newBattle.WhiteSide.OpponentSide = newBattle.BlackSide;
             newBattle.BlackSide.OpponentSide = newBattle.WhiteSide;
-            newBattle.Type = BattleType.SP_QUICKMATCH;
 
             BattleManager.Battles[session.Player.Id] = newBattle;
 
             var battleRedirect = new PacketBattleRedirect()
             {
-                IP = ((IPEndPoint)session.Socket.LocalEndPoint).Address.ToString(),
+                IP   = ConfigManager.Config.Network.Host,
                 Port = (uint)ConfigManager.Config.Network.BattlePort
             };
+
             session.Send(battleRedirect);
         }
 

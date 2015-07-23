@@ -21,6 +21,7 @@ using RelentlessZero.Network;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace RelentlessZero.Managers
@@ -86,16 +87,9 @@ namespace RelentlessZero.Managers
             return session;
         }
 
-        public static Session GetPlayerSessionById(uint id)
+        public static Session GetPlayerSession(uint id)
         {
-            foreach (KeyValuePair<string, Session> itSession in sessionMap)
-            {
-                if (itSession.Value.Player.Id == id)
-                {
-                    return itSession.Value;
-                }
-            }
-            return null;
+            return sessionMap.SingleOrDefault(session => session.Value.Player.Id == id).Value;
         }
 
         public static bool IsPlayerOnline(string name)

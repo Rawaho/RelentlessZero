@@ -18,10 +18,9 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Collections.Generic;
+
 namespace RelentlessZero.Entities
 {
-
-
     public class GoldReward
     {
         [JsonProperty(PropertyName = "matchReward")]
@@ -60,40 +59,25 @@ namespace RelentlessZero.Entities
 
     public class Idol
     {
-        public Idol()
-        {
-            Hp = MaxHp = 10;
-        }
         [JsonProperty(PropertyName = "color")]
         [JsonConverter(typeof(StringEnumConverter))]
         public PlayerColor Color { get; set; }
         [JsonProperty(PropertyName = "position")]
-        public int position { get; set; }
+        public uint Position { get; set; }
         [JsonProperty(PropertyName = "hp")]
-        public int Hp { get; set; }
+        public uint Hp { get; set; }
         [JsonProperty(PropertyName = "maxHp")]
-        public int MaxHp { get; set; }
+        public uint MaxHp { get; set; }
+
+        public Idol()
+        {
+            Hp = MaxHp = 10;
+        }
     }
 
     public class BattleSide
     {
-        // TODO : complete
-        public BattleSide(uint playerId, string playerName, PlayerColor color)
-        {
-            Color = color;
-            PlayerName = playerName;
-            PlayerId = playerId;
-            GoldReward = new GoldReward();
-            PlayerStats = new PlayerStats();
-            Idols = new Idol[5];
-            for (int i = 0; i < 5; ++i)
-            {
-                Idol idol = new Idol();
-                idol.Color = Color;
-                idol.position = i;
-                Idols[i] = idol;
-            }
-        }
+        const uint IdolCount = 5;
 
         public uint PlayerId { get; set; }
         public string PlayerName { get; set; }
@@ -102,26 +86,29 @@ namespace RelentlessZero.Entities
         public PlayerStats PlayerStats { get; set; }
         public BattleSide OpponentSide { get; set; }
         public Idol[] Idols { get; set; }
+
+        // TODO : complete
+        public BattleSide(uint playerId, string playerName, PlayerColor color)
+        {
+            Color       = color;
+            PlayerName  = playerName;
+            PlayerId    = playerId;
+            GoldReward  = new GoldReward();
+            PlayerStats = new PlayerStats();
+            Idols       = new Idol[IdolCount];
+
+            for (uint i = 0; i < IdolCount; i++)
+            {
+                Idol idol = new Idol();
+                idol.Color = Color;
+                idol.Position = i;
+                Idols[i] = idol;
+            }
+        }
     }
 
     public class Battle
     {
-        // TODO : complete
-        public Battle()
-        {
-            Phase = BattlePhase.Init;
-            RoundTimeSeconds = -1;
-            RewardForIdolKill = 10;
-        }
-
-        public BattleSide FindSideByUsername(string username)
-        {
-            if (WhiteSide.PlayerName == username)
-                return WhiteSide;
-            else
-                return BlackSide;
-        }
-
         public uint RewardForIdolKill { get; set; }
         public BattlePhase Phase { get; set; }
         public BattleType Type { get; set; }
@@ -129,5 +116,19 @@ namespace RelentlessZero.Entities
 
         public BattleSide WhiteSide { set; get; }
         public BattleSide BlackSide { set; get; }
+
+        // TODO : complete
+        public Battle(BattleType type)
+        {
+            Type              = type;
+            Phase             = BattlePhase.Init;
+            RoundTimeSeconds  = -1;
+            RewardForIdolKill = 10;
+        }
+
+        public BattleSide FindSideByUsername(string username)
+        {
+            return WhiteSide.PlayerName == username ? WhiteSide : BlackSide;
+        }
     }
 }
