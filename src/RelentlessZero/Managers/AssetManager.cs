@@ -396,6 +396,11 @@ namespace RelentlessZero.Managers
             return AvatarPartTemplateStore.SingleOrDefault(avatarPart => avatarPart.Entry == entry);
         }
 
+        public static bool HasAvatarPartTemplate(ushort entry)
+        {
+            return GetAvatarPartTemplate(entry) != null;
+        }
+
         public static ScrollTemplate GetScrollTemplate(ushort entry)
         {
             return ScrollTemplateStore.SingleOrDefault(scroll => scroll.Entry == entry);

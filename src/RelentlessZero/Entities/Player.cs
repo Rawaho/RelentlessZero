@@ -31,18 +31,29 @@ namespace RelentlessZero.Entities
         [JsonProperty(PropertyName = "profileId")]
         public uint Id { get; set; }
         [JsonProperty(PropertyName = "head")]
-        public uint Head { get; set; }
+        public ushort Head { get; set; }
         [JsonProperty(PropertyName = "body")]
-        public uint Body { get; set; }
+        public ushort Body { get; set; }
         [JsonProperty(PropertyName = "leg")]
-        public uint Leg { get; set; }
+        public ushort Leg { get; set; }
         [JsonProperty(PropertyName = "armBack")]
-        public uint ArmBack { get; set; }
+        public ushort ArmBack { get; set; }
         [JsonProperty(PropertyName = "armFront")]
-        public uint ArmFront { get; set; }
+        public ushort ArmFront { get; set; }
 
-        public void SetAvatar(uint head, uint body, uint leg, uint armBack, uint armFront)
+        public void SetAvatar(ushort head, ushort body, ushort leg, ushort armBack, ushort armFront)
         {
+            // validate that all avatar parts are valid
+            if (!AssetManager.HasAvatarPartTemplate(head)
+                || !AssetManager.HasAvatarPartTemplate(body)
+                || !AssetManager.HasAvatarPartTemplate(leg)
+                || !AssetManager.HasAvatarPartTemplate(armBack)
+                || !AssetManager.HasAvatarPartTemplate(head))
+            {
+                LogManager.Write("Player", "Tried to set invalid avatar data for player {0}! Skipping.", Id);
+                return;
+            }
+
             Head     = head;
             Body     = body;
             Leg      = leg;

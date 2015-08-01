@@ -223,8 +223,8 @@ namespace RelentlessZero.Network.Handlers
                     return;
                 }
 
-                player.Avatar.SetAvatar(avatarResult.Read<uint>(0, "head"), avatarResult.Read<uint>(0, "body"),
-                    avatarResult.Read<uint>(0, "leg"), avatarResult.Read<uint>(0, "armBack"), avatarResult.Read<uint>(0, "armFront"));
+                player.Avatar.SetAvatar(avatarResult.Read<ushort>(0, "head"), avatarResult.Read<ushort>(0, "body"),
+                    avatarResult.Read<ushort>(0, "leg"), avatarResult.Read<ushort>(0, "armBack"), avatarResult.Read<ushort>(0, "armFront"));
             }
 
             player.LoadScrolls();
