@@ -19,7 +19,6 @@ using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using RelentlessZero.Entities;
 using System;
-using System.Net;
 
 namespace RelentlessZero.Network.Handlers
 {
@@ -29,6 +28,13 @@ namespace RelentlessZero.Network.Handlers
         public static void HandleGameChallengeAccept(object packet, Session session)
         {
             var gameChallangeAccept = (PacketGameChallengeAccept)packet;
+
+            if (BattleManager.GetPendingBattleInvite(session.Player, gameChallangeAccept.ProfileId) == null)
+            {
+                LogManager.Write("Player", "Player {0} tried to accept challange from player {1}, no pending invite exists!",
+                    session.Player.Id, gameChallangeAccept.ProfileId);
+                return;
+            }
 
             Session opponentSession = WorldManager.GetPlayerSession(gameChallangeAccept.ProfileId);
             if (opponentSession != null)
@@ -88,7 +94,7 @@ namespace RelentlessZero.Network.Handlers
 
                     var battleRedirect = new PacketBattleRedirect()
                     {
-                        IP = ((IPEndPoint)session.Socket.LocalEndPoint).Address.ToString(),
+                        IP = ConfigManager.Config.Network.Host,
                         Port = (uint)ConfigManager.Config.Network.BattlePort
                     };
                     session.Send(battleRedirect);
@@ -103,28 +109,28 @@ namespace RelentlessZero.Network.Handlers
         {
             var gameChallengeDecline = (PacketGameChallengeDecline)packet;
 
-            var opponentSession = WorldManager.GetPlayerSession(gameChallengeDecline.ProfileId);
-            if (opponentSession == null)
+            var battleInvite = BattleManager.GetPendingBattleInvite(session.Player, gameChallengeDecline.ProfileId);
+            if (battleInvite == null)
             {
-                LogManager.Write("Player", "Player {0} tried to decline challange non existant player {1} to a battle!",
+                LogManager.Write("Player", "Player {0} tried to decline challange from player {1}, no pending invite exists!",
                     session.Player.Id, gameChallengeDecline.ProfileId);
+                return;
             }
 
-            var packetGameChallengeResponse = new PacketGameChallengeResponse()
-            {
-                From   = opponentSession.Player.GeneratePacketProfile(),
-                To     = session.Player.GeneratePacketProfile(),
-                Status = "DECLINE"
-            };
-
-            opponentSession.Send(packetGameChallengeResponse);
-            session.Send(packetGameChallengeResponse);
+            BattleManager.DeclineChallange(gameChallengeDecline.ProfileId, battleInvite, true);
         }
 
         [PacketHandler("GameChallengeRequest")]
         public static void HandleGameChallengeRequest(object packet, Session session)
         {
             var gameChallengeRequest = (PacketGameChallengeRequest)packet;
+
+            if (gameChallengeRequest.ProfileId == session.Player.Id)
+            {
+                LogManager.Write("Player", "Player {0} tried to challange themself to a battle!",
+                    session.Player.Id, gameChallengeRequest.ProfileId);
+                return;
+            }
 
             var opponentSession = WorldManager.GetPlayerSession(gameChallengeRequest.ProfileId);
             if (opponentSession == null)
@@ -134,13 +140,7 @@ namespace RelentlessZero.Network.Handlers
                 return;
             }
 
-            var packetGameChallenge = new PacketGameChallenge()
-            {
-                From            = session.Player.GeneratePacketProfile(),
-                ParentalConsent = false
-            };
-
-            opponentSession.Send(packetGameChallenge);
+            BattleManager.ChallangePlayer(session.Player, opponentSession.Player);
             session.SendOkPacket("GameChallengeRequest");
         }
         

@@ -19,7 +19,6 @@ using RelentlessZero.Entities;
 using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using System.Collections.Generic;
-using System.Net;
 
 namespace RelentlessZero.Network.Handlers
 {
@@ -87,7 +86,7 @@ namespace RelentlessZero.Network.Handlers
                     },
                     CustomSettings = new List<string>(),
                     RewardForIdolKill = battle.RewardForIdolKill,
-                    NodeId = ((IPEndPoint)session.Socket.LocalEndPoint).Address.ToString(),
+                    NodeId = ConfigManager.Config.Network.Host,
                     Port = (uint)ConfigManager.Config.Network.BattlePort,
                     MaxTierRewardMultiplier = 0.5f,
                     TierRewardMultiplierDelta = new List<float>(),
@@ -171,6 +170,5 @@ namespace RelentlessZero.Network.Handlers
                 }
             }
         }
-
     }
 }

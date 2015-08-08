@@ -20,7 +20,6 @@ using RelentlessZero.Entities;
 using RelentlessZero.Network;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
@@ -31,10 +30,38 @@ namespace RelentlessZero.Managers
         private static int sessionCounter;
         private static ConcurrentDictionary<string, Session> sessionMap;
 
+        private static volatile bool killWorldUpdate;
+
         static WorldManager()
         {
-            sessionCounter = 0;
-            sessionMap = new ConcurrentDictionary<string, Session>();
+            sessionCounter  = 0;
+            sessionMap      = new ConcurrentDictionary<string, Session>();
+            killWorldUpdate = false;
+        }
+
+        public static void StartWorldUpdate()
+        {
+            Thread thread = new Thread(new ThreadStart(UpdateWorld));
+            thread.Start();
+        }
+
+        public static void StopWorldUpdate()
+        {
+            killWorldUpdate = true;
+        }
+
+        private static void UpdateWorld()
+        {
+            uint timeDiff = 0;
+            while (!killWorldUpdate)
+            {
+                var startTime = DateTime.UtcNow;
+
+                BattleManager.Update(timeDiff);
+
+                Thread.Sleep(1);
+                timeDiff = (uint)(DateTime.UtcNow - startTime).TotalMilliseconds;
+            }
         }
 
         public static bool AddPlayerSession(Session session)
@@ -95,6 +122,16 @@ namespace RelentlessZero.Managers
         public static bool IsPlayerOnline(string name)
         {
             return sessionMap.ContainsKey(name);
+        }
+
+        // send packet to player id session if exists
+        public static void Send(uint id, object packet)
+        {
+            var session = GetPlayerSession(id);
+            if (session == null)
+                return;
+
+            session.Send(packet);
         }
 
         public static int GetSessionCount()

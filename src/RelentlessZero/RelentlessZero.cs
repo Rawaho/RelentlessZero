@@ -41,6 +41,8 @@ namespace RelentlessZero
 
             if (ConnectManager.Initialise())
                 PacketManager.Initialise();
+
+            WorldManager.StartWorldUpdate();
         }
     }
 }
