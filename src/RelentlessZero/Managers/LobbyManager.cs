@@ -27,24 +27,29 @@ namespace RelentlessZero.Managers
 {
     public class RoomInfo
     {
-        public string Name { get; set; }
+        public string Name { get; }
         public string Password { get; set; }
         public AdminRole Permission { get; set; }
-        public bool Incremental { get; set; }
-        public uint Id { get; set; }
+        public bool Incremental { get; }
+        public uint Id { get; }
 
         private ConcurrentDictionary<string, Player> playerStore;
-        private int sessionCounter;
+
+        private volatile uint sessionCount;
+        private volatile object sessionCountLock;
 
         public RoomInfo(string name, string password, AdminRole permission, bool incremental, uint id) 
         {
-            Name        = name;
-            Password    = password;
-            Permission  = permission;
-            Incremental = incremental;
-            Id          = id;
+            Name             = name;
+            Password         = password;
+            Permission       = permission;
+            Incremental      = incremental;
+            Id               = id;
 
-            playerStore = new ConcurrentDictionary<string, Player>();
+            playerStore      = new ConcurrentDictionary<string, Player>();
+
+            sessionCount     = 0u;
+            sessionCountLock = new object();
         }
 
         public bool AddPlayer(Player player)
@@ -55,7 +60,8 @@ namespace RelentlessZero.Managers
             // don't modify room player count if player is hidden
             bool isHidden = player.HasFlag(PlayerFlags.HidePlayer);
             if (!isHidden)
-                Interlocked.Increment(ref sessionCounter);
+                lock (sessionCountLock)
+                    sessionCount++;
 
             var roomInfo = new PacketRoomInfo()
             {
@@ -91,7 +97,8 @@ namespace RelentlessZero.Managers
 
             // don't modify room player count if player is hidden
             if (!player.HasFlag(PlayerFlags.HidePlayer))
-                Interlocked.Decrement(ref sessionCounter);
+                lock (sessionCountLock)
+                    sessionCount--;
 
             var roomInfo = new PacketRoomInfo()
             {
@@ -131,10 +138,7 @@ namespace RelentlessZero.Managers
                 session.Value.Session.Send(roomChatMessage);
         }
 
-        public int GetPlayerCount()
-        {
-            return Thread.VolatileRead(ref sessionCounter);
-        }
+        public uint GetPlayerCount() { return sessionCount; }
 
         // returns information on all players in a room, this is called on inital join to a room
         public List<PacketRoomInfoProfile> GeneratePlayerList(Player player)
@@ -162,7 +166,7 @@ namespace RelentlessZero.Managers
         public static void Initailse()
         {
             roomStore = new ConcurrentDictionary<string, RoomInfo>();
-            roomList = new List<string>();
+            roomList  = new List<string>();
 
             foreach (ConfigDefaultRoom room in ConfigManager.Config.Room.DefaultRooms)
                 AddRoom(room.Name, room.Password, room.Permission, room.Incremental, 1u, room.RoomList);

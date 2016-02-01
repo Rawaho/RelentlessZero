@@ -41,6 +41,8 @@ namespace RelentlessZero.Entities
         [JsonProperty(PropertyName = "armFront")]
         public ushort ArmFront { get; set; }
 
+        private bool IsAI() { return Id == 0; }
+
         public void SetAvatar(ushort head, ushort body, ushort leg, ushort armBack, ushort armFront)
         {
             // validate that all avatar parts are valid
@@ -59,6 +61,20 @@ namespace RelentlessZero.Entities
             Leg      = leg;
             ArmBack  = armBack;
             ArmFront = armFront;
+        }
+
+        public void SetRandom()
+        {
+            if (!IsAI())
+                return;
+
+            var sex = Helper.RandomBool() ? AvatarPartSet.MALE_1 : AvatarPartSet.FEMALE_1;
+
+            SetAvatar(AssetManager.GetRandomAvatarPart(AvatarPartName.HEAD, AvatarPartRarity.COMMON, sex),
+                AssetManager.GetRandomAvatarPart(AvatarPartName.BODY, AvatarPartRarity.COMMON, sex),
+                AssetManager.GetRandomAvatarPart(AvatarPartName.LEG, AvatarPartRarity.COMMON, sex),
+                AssetManager.GetRandomAvatarPart(AvatarPartName.ARM_FRONT, AvatarPartRarity.COMMON, sex),
+                AssetManager.GetRandomAvatarPart(AvatarPartName.ARM_BACK, AvatarPartRarity.COMMON, sex));
         }
 
         public void SaveAvatar()

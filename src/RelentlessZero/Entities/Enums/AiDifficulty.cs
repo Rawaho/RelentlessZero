@@ -17,11 +17,11 @@
 
 namespace RelentlessZero.Entities
 {
-    public enum BattlePhase
+    public enum AiDifficulty
     {
-        Init,
-        PreMain,
-        Main,
-        End
+        TUTORIAL,
+        EASY,
+        MEDIUM,
+        HARD
     }
 }

@@ -201,7 +201,7 @@ namespace RelentlessZero.Network
 
             if (!HasSessionType(session.Type, packetInfo.SessionType))
             {
-                LogManager.Write("Packet Manager", "Failed to handle packet {0}, {1} has invalid session type {1}!",
+                LogManager.Write("Packet Manager", "Failed to handle packet {0}, {1} has invalid session type {2}!",
                     packetHeader.Msg, sessionString, session.Type.ToString());
                 return false;
             }

@@ -15,8 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using System;
+
 namespace RelentlessZero.Entities
 {
+    [Flags]
     public enum PlayerFlags
     {
         None             = 0x00000,

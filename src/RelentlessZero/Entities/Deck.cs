@@ -112,6 +112,7 @@ namespace RelentlessZero.Entities
             // foreign key will remove scroll information for deck
             DatabaseManager.Database.Execute("DELETE FROM `account_deck` WHERE `id` = ? AND `accountId` = ?", Id, Owner.Id);
         }
+
         public void CalculateAge()
         {
             Age = string.Empty;

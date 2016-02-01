@@ -20,7 +20,6 @@ using Newtonsoft.Json.Converters;
 using RelentlessZero.Entities;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace RelentlessZero.Network
 {
@@ -57,7 +56,7 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "room")]
         public PacketRoom Room { get; set; }
         [JsonProperty(PropertyName = "numberOfUsers")]
-        public int NumberOfUsers { get; set; }
+        public uint NumberOfUsers { get; set; }
     }
     
     public class PacketProfile
@@ -115,96 +114,6 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "featureType")]
         public string FeatureType { get; set; }
     }
-
-    // ----------------------------------------------------------------
-    // Packet Effects Structures
-    // ----------------------------------------------------------------
-
-    // custom serializer for effects subpackets. Meh.
-    public class JsonPacketEffectSerializer : JsonConverter
-    {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-                PacketEffect effect = (PacketEffect)value;
-                PacketEffectAttribute effectAttribute = effect.GetType().GetCustomAttribute<PacketEffectAttribute>();
-                if (effectAttribute == null)
-                    throw new NotSupportedException("All PacketEffect classes must have a PacketEffectAttribute !");
-
-                writer.WriteStartObject();
-                writer.WritePropertyName(effectAttribute.Name);
-                writer.WriteStartObject();
-                foreach (PropertyInfo info in value.GetType().GetProperties())
-                {
-                    string propertyName;
-                    JsonPropertyAttribute propertyAttribute = info.GetCustomAttribute<JsonPropertyAttribute>();
-                    if (propertyAttribute != null)
-                        propertyName = propertyAttribute.PropertyName;
-                    else
-                        propertyName = info.Name;
-                    writer.WritePropertyName(propertyName);
-
-                    JsonConverterAttribute conversionAttribute = info.GetCustomAttribute<JsonConverterAttribute>();
-                    if (conversionAttribute != null)
-                        writer.WriteRawValue(JsonConvert.SerializeObject(info.GetValue(value), Formatting.None, (JsonConverter)Activator.CreateInstance(conversionAttribute.ConverterType)));
-                    else
-                        writer.WriteRawValue(JsonConvert.SerializeObject(info.GetValue(value)));
-                }
-                writer.WriteEndObject();
-                writer.WriteEndObject();
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            // effects packets are sent by server and should never be received from client
-            throw new NotImplementedException();
-        }
-
-        public override bool CanConvert(Type objectType)
-        {
-            return typeof(PacketEffect).IsAssignableFrom(objectType);
-        }
-    }
-
-    [JsonConverter(typeof(JsonPacketEffectSerializer))]
-    public abstract class PacketEffect {}
-
-    [PacketEffect("IdolUpdateEffect")]
-    public class PacketIdolUpdateEffect : PacketEffect
-    {
-        [JsonProperty(PropertyName = "idol")]
-        public Idol Idol { get; set; }
-    }
-
-    [PacketEffect("MulliganDisabledEffect")]
-    public class PacketMulliganDisabledEffect : PacketEffect
-    {
-        [JsonProperty(PropertyName = "color")]
-        public PlayerColor Color { get; set; }
-    }
-
-    [PacketEffect("EndGame")]
-    public class PacketEndGameEffect : PacketEffect
-    {
-        [JsonProperty(PropertyName = "winner")]
-        public PlayerColor Winner { get; set; }
-        [JsonProperty(PropertyName = "whiteStats")]
-        public PlayerStats WhiteStats { get; set; }
-        [JsonProperty(PropertyName = "blackStats")]
-        public PlayerStats BlackStats { get; set; }
-        [JsonProperty(PropertyName = "whiteGoldReward")]
-        public GoldReward WhiteGoldReward { get; set; }
-        [JsonProperty(PropertyName = "blackGoldReward")]
-        public GoldReward BlackGoldReward { get; set; }
-    }
-
-    [PacketEffect("SurrenderEffect")]
-    public class PacketSurrenderEffect : PacketEffect
-    {
-        [JsonProperty(PropertyName = "color")]
-        [JsonConverter(typeof(StringEnumConverter))]
-        public PlayerColor Color { get; set; }
-    }
-
 
     // ----------------------------------------------------------------
     // Packet Structures
@@ -297,6 +206,14 @@ namespace RelentlessZero.Network
         public string Hint { get; set; }
     }
 
+    [Packet("EndPhase", PacketDirection.ClientToServer, SessionType.Battle)]
+    public class PacketEndPhase : PacketHeader
+    {
+        [JsonProperty(PropertyName = "phase")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public BattlePhase Phase { get; set; }
+    }
+
     [Packet("Fail", PacketDirection.ServerToClient, SessionType.Lookup | SessionType.Lobby | SessionType.Battle, false)]
     public class PacketFail : PacketHeader
     {
@@ -375,7 +292,7 @@ namespace RelentlessZero.Network
         public uint GameId { get; set; }
         [JsonProperty(PropertyName = "color")]
         [JsonConverter(typeof(StringEnumConverter))]
-        public PlayerColor Color { get; set; }
+        public TileColour Colour { get; set; }
         [JsonProperty(PropertyName = "roundTimerSeconds")]
         public int roundTimerSeconds { get; set; }
         [JsonProperty(PropertyName = "phase")]
@@ -446,10 +363,11 @@ namespace RelentlessZero.Network
         public int Port { get; set; }
     }
 
+    // special packet, this is serialised separately
+    [JsonConverter(typeof(JsonPacketNewEffectsSerializer))]
     [Packet("NewEffects", PacketDirection.ServerToClient, SessionType.Battle)]
     public class PacketNewEffects : PacketHeader
     {
-        [JsonProperty(PropertyName = "effects")]
         public List<PacketEffect> Effects = new List<PacketEffect>(); 
     }
 
@@ -466,7 +384,7 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "loginsLast24h")]
         public uint PlayersOnline24h { get; set; }
         [JsonProperty(PropertyName = "nrOfProfiles")]
-        public int PlayersOnline { get; set; }
+        public uint PlayersOnline { get; set; }
         [JsonProperty(PropertyName = "serverName")]
         public string ServerName { get; set; }
 
@@ -500,7 +418,7 @@ namespace RelentlessZero.Network
         public PacketProfileData ProfileData { get; set; }
     }
 
-    [Packet("ProfileInfo", PacketDirection.ServerToClient, SessionType.Lobby)]
+    [Packet("ProfileInfo", PacketDirection.ServerToClient, SessionType.Lobby | SessionType.Battle)]
     public class PacketProfileInfo : PacketHeader
     {
         [JsonProperty(PropertyName = "profile")]

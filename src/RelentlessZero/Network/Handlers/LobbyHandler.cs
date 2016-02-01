@@ -29,79 +29,56 @@ namespace RelentlessZero.Network.Handlers
         {
             var gameChallangeAccept = (PacketGameChallengeAccept)packet;
 
-            if (BattleManager.GetPendingBattleInvite(session.Player, gameChallangeAccept.ProfileId) == null)
+            var battleInvite = BattleManager.GetPendingChallange(session.Player.Id, gameChallangeAccept.ProfileId);
+            if (battleInvite == null)
             {
                 LogManager.Write("Player", "Player {0} tried to accept challange from player {1}, no pending invite exists!",
                     session.Player.Id, gameChallangeAccept.ProfileId);
                 return;
             }
 
-            Session opponentSession = WorldManager.GetPlayerSession(gameChallangeAccept.ProfileId);
-            if (opponentSession != null)
+            if (battleInvite.Expired)
             {
-                if (BattleManager.Battles.ContainsKey(session.Player.Id))
-                    LogManager.Write("Lobby handler", "player {0} wants to play several quickmatches at once ! Not possible !", session.Player.Id);
-                else if (BattleManager.Battles.ContainsKey(opponentSession.Player.Id))
-                    LogManager.Write("Lobby handler", "player {0} wants to play several quickmatches at once ! Not possible !", opponentSession.Player.Id);
-                else
-                {
-                    // TODO: handle this better
-                    /*BattleType[] typesToAbort = new BattleType[3] { BattleType.MP_QUICKMATCH, BattleType.MP_RANKED, BattleType.MP_LIMITED };
-                    foreach (BattleType battleType in typesToAbort)
-                    {
-                        var cancelQueue = new PacketGameMatchQueueStatus()
-                        {
-                            InQueue = false,
-                            GameType = battleType
-                        };
-                        session.Send(cancelQueue);
-                        opponentSession.Send(cancelQueue);
-                    }*/
-
-                    PacketGameChallengeResponse gameChallenge = new PacketGameChallengeResponse()
-                    {
-                        From   = opponentSession.Player.GeneratePacketProfile(),
-                        To     = session.Player.GeneratePacketProfile(),
-                        Status = "ACCEPT"
-                    };
-
-                    opponentSession.Send(gameChallenge);
-                    session.SendOkPacket("GameChallengeAccept");
-
-                    Random random = new Random();
-                    PlayerColor challengerColor, challengedColor;
-                    if (random.Next(2) > 0)
-                    {
-                        challengerColor = PlayerColor.white;
-                        challengedColor = PlayerColor.black;
-                    }
-                    else
-                    {
-                        challengedColor = PlayerColor.white;
-                        challengerColor = PlayerColor.black;
-                    }
-
-                    Battle newBattle = new Battle(BattleType.MP_UNRANKED);
-                    BattleSide challengedSide = new BattleSide(session.Player.Id, session.Player.Username, challengedColor);
-                    BattleSide challengerSide = new BattleSide(opponentSession.Player.Id, opponentSession.Player.Username, challengerColor);
-                    challengedSide.OpponentSide = challengerSide;
-                    challengerSide.OpponentSide = challengedSide;
-                    newBattle.WhiteSide = challengerColor == PlayerColor.white ? challengerSide : challengedSide;
-                    newBattle.BlackSide = challengerColor == PlayerColor.black ? challengerSide : challengedSide;
-
-                    BattleManager.Battles[session.Player.Id] = newBattle;
-                    BattleManager.Battles[opponentSession.Player.Id] = newBattle;
-
-                    var battleRedirect = new PacketBattleRedirect()
-                    {
-                        IP = ConfigManager.Config.Network.Host,
-                        Port = (uint)ConfigManager.Config.Network.BattlePort
-                    };
-                    session.Send(battleRedirect);
-                    opponentSession.Send(battleRedirect);
-
-                }
+                LogManager.Write("Player", "Player {0} tried to accept challange from player {1}, but invite has already expired!",
+                    session.Player.Id, gameChallangeAccept.ProfileId);
+                return;
             }
+
+            var battleInfo = BattleManager.GetBattleInfo(session.Player.Id);
+            if (battleInfo != null)
+            {
+                LogManager.Write("Player", "Player {0} tried to accept challange from player {1}, but they are already in an active battle!",
+                    session.Player.Id, gameChallangeAccept.ProfileId);
+                return;
+            }
+
+            var challanger = WorldManager.GetPlayerSession(gameChallangeAccept.ProfileId);
+            if (challanger == null)
+            {
+                LogManager.Write("Player", "Player {0} tried to accept challange from player {1}, but challanger is offline!",
+                    session.Player.Id, gameChallangeAccept.ProfileId);
+                return;
+            }
+
+            // this should only fail if the challanger deletes their deck before the opponent accepts
+            var challangerDeck = challanger.Player.GetDeck(battleInvite.ChallangerDeck);
+            if (challangerDeck == null)
+            {
+                LogManager.Write("Player", "Player {0} tried to accept challange from player {1}, but challanger has non existant deck {2}!",
+                    session.Player.Id, gameChallangeAccept.ProfileId, challangerDeck.Name);
+                return;
+            }
+
+            var deck = session.Player.GetDeck(gameChallangeAccept.Deck);
+            if (deck == null)
+            {
+                LogManager.Write("Player", "Player {0} tried to accept challange from player {1} but has non existant deck {2}!",
+                    session.Player.Id, gameChallangeAccept.ProfileId, gameChallangeAccept.Deck);
+                return;
+            }
+
+            BattleManager.CreateBattle(BattleType.MP_UNRANKED, challanger.Player, challangerDeck, session.Player, deck);
+            BattleManager.RemoveChallange(gameChallangeAccept.ProfileId);
         }
 
         [PacketHandler("GameChallengeDecline")]
@@ -109,10 +86,17 @@ namespace RelentlessZero.Network.Handlers
         {
             var gameChallengeDecline = (PacketGameChallengeDecline)packet;
 
-            var battleInvite = BattleManager.GetPendingBattleInvite(session.Player, gameChallengeDecline.ProfileId);
+            var battleInvite = BattleManager.GetPendingChallange(session.Player.Id, gameChallengeDecline.ProfileId);
             if (battleInvite == null)
             {
                 LogManager.Write("Player", "Player {0} tried to decline challange from player {1}, no pending invite exists!",
+                    session.Player.Id, gameChallengeDecline.ProfileId);
+                return;
+            }
+
+            if (battleInvite.Expired)
+            {
+                LogManager.Write("Player", "Player {0} tried to decline challange from player {1}, but invite has already expired!",
                     session.Player.Id, gameChallengeDecline.ProfileId);
                 return;
             }
@@ -132,6 +116,14 @@ namespace RelentlessZero.Network.Handlers
                 return;
             }
 
+            var deck = session.Player.GetDeck(gameChallengeRequest.Deck);
+            if (deck == null)
+            {
+                LogManager.Write("Player", "Player {0} tried to challange another player with non existant deck {1}!",
+                    session.Player.Id, gameChallengeRequest.Deck);
+                return;
+            }
+
             var opponentSession = WorldManager.GetPlayerSession(gameChallengeRequest.ProfileId);
             if (opponentSession == null)
             {
@@ -140,48 +132,55 @@ namespace RelentlessZero.Network.Handlers
                 return;
             }
 
-            BattleManager.ChallangePlayer(session.Player, opponentSession.Player);
+            if (BattleManager.GetPendingChallange(opponentSession.Player.Id, session.Player.Id) != null)
+            {
+                LogManager.Write("Player", $"Player {session.Player.Id} tried to challange a player that already has pending invite!");
+                return;
+            }
+
+            BattleManager.ChallangePlayer(session.Player, deck, opponentSession.Player);
             session.SendOkPacket("GameChallengeRequest");
         }
         
         [PacketHandler("PlaySinglePlayerQuickMatch")]
         public static void HandlePlaySinglePlayerQuickMatch(object packet, Session session)
         {
-            if (BattleManager.Battles.ContainsKey(session.Player.Id))
+            var playSinglePlayerQuickMatch = (PacketPlaySinglePlayerQuickMatch)packet;
+
+            var deck = session.Player.GetDeck(playSinglePlayerQuickMatch.Deck);
+            if (deck == null)
             {
-                LogManager.Write("Player", "Player {0} wants to play several skirmish at once ! Not possible !", session.Player.Id);
+                LogManager.Write("Player", "Player {0} tried to enter battle with non existent deck {1}!",
+                    session.Player.Id, playSinglePlayerQuickMatch.Deck);
                 return;
             }
 
-            // TODO : handle this better
-            /*BattleType[] typesToAbort = new BattleType[3] {BattleType.MP_QUICKMATCH, BattleType.MP_RANKED, BattleType.MP_LIMITED};
-
-            foreach (BattleType battleType in typesToAbort)
+            var battleInfo = BattleManager.GetBattleInfo(session.Player.Id);
+            if (battleInfo != null)
             {
-                var cancelQueue = new PacketGameMatchQueueStatus()
-                {
-                    InQueue = false,
-                    GameType = battleType
-                };
-                session.Send(cancelQueue);
-            }*/
+                LogManager.Write("Player", "Player {0} tried to enter battle but they are already in an active battle!",
+                    session.Player.Id);
+                return;
+            }
 
-            // TODO : handle AI robot name and deck
-            var newBattle = new Battle(BattleType.SP_QUICKMATCH);
-            newBattle.WhiteSide = new BattleSide(session.Player.Id, session.Player.Username, PlayerColor.white);
-            newBattle.BlackSide = new BattleSide(UInt16.MaxValue, "Easy AI", PlayerColor.black);
-            newBattle.WhiteSide.OpponentSide = newBattle.BlackSide;
-            newBattle.BlackSide.OpponentSide = newBattle.WhiteSide;
-
-            BattleManager.Battles[session.Player.Id] = newBattle;
-
-            var battleRedirect = new PacketBattleRedirect()
+            // convert AI name sent by client to difficulty
+            string difficultyString = playSinglePlayerQuickMatch.RobotName.Remove(0, 5).ToUpper();
+            if (!Enum.IsDefined(typeof(AiDifficulty), difficultyString))
             {
-                IP   = ConfigManager.Config.Network.Host,
-                Port = (uint)ConfigManager.Config.Network.BattlePort
-            };
+                LogManager.Write("Player", "Player {0} tried to enter battle with invalid difficulty {1}!",
+                    session.Player.Id, difficultyString);
+                return;
+            }
 
-            session.Send(battleRedirect);
+            var difficulty = (AiDifficulty)Enum.Parse(typeof(AiDifficulty), difficultyString);
+            if (difficulty == AiDifficulty.TUTORIAL)
+            {
+                LogManager.Write("Player", "Player {0} tried to enter a tutorial battle via quickmatch!",
+                    session.Player.Id, difficultyString);
+                return;
+            }
+
+            BattleManager.CreateBattle(BattleType.SP_QUICKMATCH, session.Player, deck, null, null, difficulty);
         }
 
         [PacketHandler("RoomChatMessage")]

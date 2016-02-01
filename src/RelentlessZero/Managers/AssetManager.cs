@@ -391,35 +391,26 @@ namespace RelentlessZero.Managers
             ScrollTemplateCache = JsonConvert.SerializeObject(cardTypes);
         }
 
-        public static AvatarPartTemplate GetAvatarPartTemplate(ushort entry)
+        public static AvatarPartTemplate GetAvatarPartTemplate(ushort entry) { return AvatarPartTemplateStore.SingleOrDefault(avatarPart => avatarPart.Entry == entry); }
+        public static bool HasAvatarPartTemplate(ushort entry) { return GetAvatarPartTemplate(entry) != null; }
+
+        public static ushort GetRandomAvatarPart(AvatarPartName avatarPart, AvatarPartRarity partRarity = AvatarPartRarity.COMMON, AvatarPartSet partSet = AvatarPartSet.MALE_1)
         {
-            return AvatarPartTemplateStore.SingleOrDefault(avatarPart => avatarPart.Entry == entry);
+            var compatibleParts = AvatarPartTemplateStore.Where(partTemplate => partTemplate.Part == avatarPart
+                && partTemplate.Type == partRarity
+                && partTemplate.Set == partSet);
+
+            if (!compatibleParts.Any())
+                return 0;
+
+            return compatibleParts.ElementAt(new Random().Next(0, compatibleParts.Count())).Entry;
         }
 
-        public static bool HasAvatarPartTemplate(ushort entry)
-        {
-            return GetAvatarPartTemplate(entry) != null;
-        }
+        public static ScrollTemplate GetScrollTemplate(ushort entry) { return ScrollTemplateStore.SingleOrDefault(scroll => scroll.Entry == entry); }
 
-        public static ScrollTemplate GetScrollTemplate(ushort entry)
-        {
-            return ScrollTemplateStore.SingleOrDefault(scroll => scroll.Entry == entry);
-        }
-
-        private static AbilityTemplate GetAbilityTemplate(ushort entry)
-        {
-            return abilityTemplateStore.SingleOrDefault(ability => ability.Entry == entry);
-        }
-
-        private static PassiveTemplate GetPassiveTemplate(ushort entry)
-        {
-            return passiveTemplateStore.SingleOrDefault(passive => passive.Entry == entry);
-        }
-
-        private static TagTemplate GetTagTemplate(ushort entry)
-        {
-            return tagTemplateStore.SingleOrDefault(tag => tag.Entry == entry);
-        }
+        private static AbilityTemplate GetAbilityTemplate(ushort entry) { return abilityTemplateStore.SingleOrDefault(ability => ability.Entry == entry); }
+        private static PassiveTemplate GetPassiveTemplate(ushort entry) { return passiveTemplateStore.SingleOrDefault(passive => passive.Entry == entry); }
+        private static TagTemplate GetTagTemplate(ushort entry) { return tagTemplateStore.SingleOrDefault(tag => tag.Entry == entry); }
 
         private static void InitialiseAssetCounters()
         {

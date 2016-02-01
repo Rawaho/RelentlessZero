@@ -17,11 +17,14 @@
 
 namespace RelentlessZero.Entities
 {
-    public enum BattlePhase
+    public enum BattleMoveType
     {
-        Init,
-        PreMain,
-        Main,
-        End
+        None,
+        Surrender,
+        Move,
+        Attack,
+        PlayScroll,
+        EndTurn,
+        LeaveGame
     }
 }

@@ -112,6 +112,9 @@ namespace RelentlessZero.Network
 
         public void Send(object packet)
         {
+            if (packet == null)
+                return;
+
             if (!PacketManager.HandleOutgoingPacket(ref packet, this))
                 return;
 

@@ -44,7 +44,7 @@ namespace RelentlessZero.Network.Handlers
             var firstConnect = (PacketConnect)packet;
             string packetName = packet.GetType().Name.Remove(0, 6);
 
-            // decrypt login information
+            // decrypt login information using RSA private key
             string username = Rsa.Decrypt(firstConnect.Username);
             string password = Rsa.Decrypt(firstConnect.Password);
 
@@ -55,58 +55,63 @@ namespace RelentlessZero.Network.Handlers
                 return;
             }
 
-            // handle initial profile data from database
-            SqlResult accountResult = DatabaseManager.Database.Select("SELECT id, password, salt, adminRole, flags FROM account_info WHERE username = ?", username);
-            if (accountResult == null || accountResult.Count > 1)
+            var authStatus = AuthStatus.InvalidCredentials;
+
+            // retrieve account information
+            var accountResult = DatabaseManager.Database.Select("SELECT id, password, salt, adminRole, gold, shards, rating, flags FROM account_info WHERE username = ?", username);
+            if (accountResult == null)
+                authStatus = AuthStatus.InternalError;
+            else if (accountResult.Count != 0)
+                authStatus = GetAuthStatus(accountResult.Read<uint>(0, "id"), accountResult.Read<string>(0, "password"), accountResult.Read<string>(0, "salt"), username, password);
+
+            if (authStatus != AuthStatus.Ok)
             {
-                LogManager.Write("Authentication", "Failed to lookup account {0} requested by session {1}!", username, session.IpAddress);
-                session.SendFatalFailPacket(packetName, "Internal Error: Failed to lookup account information!");
+                session.SendFailPacket(packetName, GetAuthFailStatusString(authStatus));
                 return;
             }
 
-            AuthStatus authStatus = AuthStatus.InvalidCredentials;
-            if (accountResult.Count == 1)
+            // authentication was successful
+            session.Player = new Player()
             {
-                uint accountId = accountResult.Read<uint>(0, "id");
+                Id        = accountResult.Read<uint>(0, "id"),
+                Session   = session,
+                Username  = username,
+                AdminRole = accountResult.Read<AdminRole>(0, "adminRole"),
+                Gold      = accountResult.Read<uint>(0, "gold"),
+                Shards    = accountResult.Read<uint>(0, "shards"),
+                Rating    = accountResult.Read<ushort>(0, "rating"),
+                Flags     = accountResult.Read<PlayerFlags>(0, "flags"),
+            };
 
-                authStatus = GetAuthStatus(accountId, accountResult.Read<string>(0, "password"), accountResult.Read<string>(0, "salt"), username, password);
-                if (authStatus == AuthStatus.Ok)
-                {
-                    session.Player = new Player()
-                    {
-                        Id        = accountId,
-                        Session   = session,
-                        Username  = username,
-                        AdminRole = accountResult.Read<AdminRole>(0, "adminRole"),
-                        Flags     = accountResult.Read<PlayerFlags>(0, "flags"),
-                    };
-
-                    // send initial profile data to client
-                    var profileInfo = new PacketProfileInfo
-                    {
-                        Profile = session.Player.GeneratePacketProfile()
-                    };
-
-                    session.Send(profileInfo);
-
-                    if (packetName == "FirstConnect")
-                    {
-                        session.SendString(AssetManager.ScrollTemplateCache);
-                        session.SendString(AssetManager.AvatarPartTemplateCache);
-
-                        // TODO: send other assets here...
-                        // session.SendString("{\"type\":\"GROWTH_START_DECK\",\"msg\":\"Message\"}");
-                    }
-
-                    // authentication was successful, send packets to move client to main menu
-                    session.SendOkPacket(packetName);
-                    session.Send(new PacketActivateGame());
-                }
-                else
-                    session.SendFailPacket(packetName, GetAuthFailStatusString(authStatus));
+            if (!WorldManager.AddPlayerSession(session))
+            {
+                session.SendFatalFailPacket(packetName, "An internal error has occurred!");
+                return;
             }
-            else
-                session.SendFailPacket(packetName, GetAuthFailStatusString(authStatus));
+
+            // send initial profile data to client
+            var profileInfo = new PacketProfileInfo
+            {
+                Profile = session.Player.GeneratePacketProfile()
+            };
+
+            session.Send(profileInfo);
+
+            if (packetName == "FirstConnect")
+            {
+                // only send game asset information on initial login
+                session.SendString(AssetManager.ScrollTemplateCache);
+                session.SendString(AssetManager.AvatarPartTemplateCache);
+
+                // TODO: send other assets here...
+                // session.SendString("{\"type\":\"GROWTH_START_DECK\",\"msg\":\"Message\"}");
+            }
+
+            // send packets to make client request join to lobby or game
+            session.SendOkPacket(packetName);
+
+            if (session.Type != SessionType.Battle)
+                session.Send(new PacketActivateGame());
         }
 
         private static AuthStatus GetAuthStatus(uint accountId, string passwordHash, string salt, string username, string password)
@@ -125,7 +130,7 @@ namespace RelentlessZero.Network.Handlers
 
             if (banResult.Count == 1)
             {
-                uint currentTimestamp = (uint)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+                uint currentTimestamp = Helper.GetUnixTime();
                 uint banTimestamp = banResult.Read<uint>(0, "timestamp");
 
                 if (banTimestamp == 0)
@@ -163,25 +168,7 @@ namespace RelentlessZero.Network.Handlers
         [PacketHandler("JoinLobby")]
         public static void HandleJoinLobby(object packet, Session session)
         {
-            // handle remaining profile data from database
-            SqlResult accountResult = DatabaseManager.Database.Select("SELECT gold, shards, rating FROM account_info WHERE username = ?", session.Player.Username);
-            if (accountResult == null || accountResult.Count != 1)
-            {
-                session.SendFatalFailPacket("JoinLobby", "Failed to lookup account information!");
-                return;
-            }
-
-            if (!WorldManager.AddPlayerSession(session))
-            {
-                // will only fail if 'JoinLobby' is sent before 'Connect', which shouldn't occur normally?
-                session.SendFatalFailPacket("JoinLobby", "Failed to add player session!");
-                return;
-            }
-
             var player = session.Player;
-            player.Gold   = accountResult.Read<uint>(0, "gold");
-            player.Shards = accountResult.Read<uint>(0, "shards");
-            player.Rating = accountResult.Read<ushort>(0, "rating");
 
             // send remaining profile data to client
             var profileDataInfo = new PacketProfileDataInfo

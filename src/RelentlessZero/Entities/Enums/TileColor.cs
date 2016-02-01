@@ -17,11 +17,10 @@
 
 namespace RelentlessZero.Entities
 {
-    public enum BattlePhase
+    public enum TileColour
     {
-        Init,
-        PreMain,
-        Main,
-        End
+        white,
+        black,
+        unknown
     }
 }

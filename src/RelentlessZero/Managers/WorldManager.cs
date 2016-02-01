@@ -27,16 +27,20 @@ namespace RelentlessZero.Managers
 {
     public static class WorldManager
     {
-        private static int sessionCounter;
+        private static uint sessionCounter;
+        private static object sessionCounterLock;
+
         private static ConcurrentDictionary<string, Session> sessionMap;
 
         private static volatile bool killWorldUpdate;
 
         static WorldManager()
         {
-            sessionCounter  = 0;
-            sessionMap      = new ConcurrentDictionary<string, Session>();
-            killWorldUpdate = false;
+            sessionCounter     = 0u;
+            sessionCounterLock = new object();
+
+            sessionMap         = new ConcurrentDictionary<string, Session>();
+            killWorldUpdate    = false;
         }
 
         public static void StartWorldUpdate()
@@ -45,10 +49,7 @@ namespace RelentlessZero.Managers
             thread.Start();
         }
 
-        public static void StopWorldUpdate()
-        {
-            killWorldUpdate = true;
-        }
+        public static void StopWorldUpdate() { killWorldUpdate = true; }
 
         private static void UpdateWorld()
         {
@@ -76,7 +77,6 @@ namespace RelentlessZero.Managers
             {
                 if (!session.Player.HasFlag(PlayerFlags.HidePlayer))
                     SessionCountIncrement();
-
                 return true;
             }
 
@@ -96,57 +96,41 @@ namespace RelentlessZero.Managers
             {
                 if (!session.Player.HasFlag(PlayerFlags.HidePlayer))
                     SessionCountDecrement();
-
                 return true;
             }
 
             return false;
         }
 
-        public static Session GetPlayerSession(string name)
+        public static Session GetPlayerSession(string name) { return sessionMap.SingleOrDefault(session => session.Value.Player.Username == name).Value; }
+        public static Session GetPlayerSession(uint id) { return sessionMap.SingleOrDefault(session => session.Value.Player.Id == id).Value; }
+        public static bool IsPlayerOnline(string name) { return sessionMap.ContainsKey(name); }
+
+        public static void Send(object packet, params uint[] ids)
         {
-            if (!IsPlayerOnline(name))
-                return null;
+            foreach (uint id in ids)
+            {
+                if (id == 0)
+                    continue;
 
-            Session session;
-            sessionMap.TryGetValue(name, out session);
-
-            return session;
+                var session = GetPlayerSession(id);
+                if (session != null)
+                    session.Send(packet);
+            }
         }
 
-        public static Session GetPlayerSession(uint id)
-        {
-            return sessionMap.SingleOrDefault(session => session.Value.Player.Id == id).Value;
-        }
-
-        public static bool IsPlayerOnline(string name)
-        {
-            return sessionMap.ContainsKey(name);
-        }
-
-        // send packet to player id session if exists
-        public static void Send(uint id, object packet)
-        {
-            var session = GetPlayerSession(id);
-            if (session == null)
-                return;
-
-            session.Send(packet);
-        }
-
-        public static int GetSessionCount()
-        {
-            return Thread.VolatileRead(ref sessionCounter);
-        }
+        public static uint GetSessionCount() { return sessionCounter; }
 
         private static void SessionCountIncrement()
         {
-            Interlocked.Increment(ref sessionCounter);
+            lock (sessionCounterLock)
+                sessionCounter++;
         }
 
         private static void SessionCountDecrement()
         {
-            Interlocked.Decrement(ref sessionCounter);
+            lock (sessionCounterLock)
+                sessionCounter--;
         }
     }
 }

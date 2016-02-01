@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (C) 2013-2015 RelentlessZero
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,11 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace RelentlessZero.Entities
+using System;
+
+namespace RelentlessZero
 {
-    public enum PlayerColor
+    public static class Helper
     {
-        white,
-        black
+        public static bool RandomBool() { return new Random().NextDouble() >= 0.5f; }
+
+        public static uint GetUnixTime() { return (uint)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds; }
     }
 }
