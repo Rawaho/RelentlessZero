@@ -336,6 +336,62 @@ namespace RelentlessZero.Network
         public BattleType GameType { get; set; }
     }
 
+    [Packet("GameState", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Battle)]
+    public class PacketGameState : PacketHeader
+    {
+        public class SideBoard
+        {
+            [JsonProperty(PropertyName = "color")]
+            [JsonConverter(typeof(StringEnumConverter))]
+            public TileColour Colour { get; set; }
+            [JsonProperty(PropertyName = "tiles")]
+            public string[] Tiles { get; set; } // TODO
+            [JsonProperty(PropertyName = "idols")]
+            public uint[] Idols { get; set; }
+        }
+
+        public class SideAssets
+        {
+        }
+
+        public class SideGameState
+        {
+            [JsonProperty(PropertyName = "playerName")]
+            public string Name { get; set; }
+            [JsonProperty(PropertyName = "board")]
+            public SideBoard Board { get; set; }
+            [JsonProperty(PropertyName = "mulliganAllowed")]
+            public bool Mulligan { get; set; }
+            [JsonProperty(PropertyName = "assets")]
+            public SideAssets Assets { get; set; }
+            [JsonProperty(PropertyName = "ruleUpdates")]
+            public string[] RuleUpdates { get; set; } // TODO
+            [JsonProperty(PropertyName = "handSize")]
+            public int HandSize { get; set; }
+            [JsonProperty(PropertyName = "librarySize")]
+            public int LibrarySize { get; set; }
+            [JsonProperty(PropertyName = "graveyardSize")]
+            public int GraveyardSize { get; set; }
+        }
+
+        [JsonProperty(PropertyName = "blackGameState")]
+        public SideGameState BlackState { get; set; }
+        [JsonProperty(PropertyName = "whiteGameState")]
+        public SideGameState WhiteState { get; set; }
+        [JsonProperty(PropertyName = "activeColor")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public TileColour ActiveColour { get; set; }
+        [JsonProperty(PropertyName = "phase")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public BattlePhase Phase { get; set; }
+        [JsonProperty(PropertyName = "turn")]
+        public uint Turn { get; set; }
+        [JsonProperty(PropertyName = "hasSacrificed")]
+        public bool Sacrificed { get; set; }
+        [JsonProperty(PropertyName = "secondsLeft")]
+        public int SecondsLeft { get; set; }
+    }
+
     [Packet("JoinLobby", PacketDirection.ClientToServer, SessionType.Lobby)]
     public class PacketJoinLobby { }
 

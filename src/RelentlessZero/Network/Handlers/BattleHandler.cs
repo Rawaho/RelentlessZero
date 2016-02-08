@@ -60,6 +60,49 @@ namespace RelentlessZero.Network.Handlers
         [PacketHandler("EndPhase")]
         public static void HandleEndPhase(object packet, Session session)
         {
+            var endPhase = (PacketEndPhase)packet;
+
+            Battle battle;
+            BattleInfo battleInfo;
+            if (!GetBattleInformation(session.Player, "EndPhase", out battle, out battleInfo))
+                return;
+
+            if (battle.Phase != endPhase.Phase)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} attempted to end phase {endPhase.Phase.ToString()}; should of been {battle.Phase}!");
+                return;
+            }
+
+            switch (endPhase.Phase)
+            {
+                case BattlePhase.Init:
+                    battle.GetSide(battleInfo.SideColour).AddPendingMove(BattleMoveType.GameState);
+                    break;
+                case BattlePhase.PreMain:
+                {
+                    if (battle.CurrentTurn != battleInfo.SideColour)
+                    {
+                        LogManager.Write("Battle", $"Player {session.Player.Id} attempted to start a new round before opponent turn finished!");
+                        return;
+                    }
+
+                    battle.GetSide(battleInfo.SideColour).AddPendingMove(BattleMoveType.StartRound);
+                    break;
+                }
+                case BattlePhase.Main:
+                {
+                    if (battle.CurrentTurn != battleInfo.SideColour)
+                    {
+                        LogManager.Write("Battle", $"Player {session.Player.Id} attempted to end round during opponent turn!");
+                        return;
+                    }
+
+                    battle.GetSide(battleInfo.SideColour).AddPendingMove(BattleMoveType.EndRound);
+                    break;
+                }
+                default:
+                    break;
+            }
         }
 
         [PacketHandler("JoinBattle")]

@@ -192,7 +192,8 @@ namespace RelentlessZero.Network.Handlers
             // handle first login
             if (player.HasFlag(PlayerFlags.FirstLogin))
             {
-                player.GiveAllScrolls();
+                foreach (var scrollTemplate in AssetManager.ScrollTemplateStore)
+                    player.Scrolls.Add(new ScrollInstance(scrollTemplate, player.Id));
 
                 // default avatar pieces
                 player.Avatar.SetAvatar(33, 10, 41, 4, 15);

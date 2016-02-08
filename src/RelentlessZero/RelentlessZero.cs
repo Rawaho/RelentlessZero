@@ -15,10 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-using RelentlessZero.Cryptography;
 using RelentlessZero.Database;
 using RelentlessZero.Network;
-using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using System;
 using System.Threading;

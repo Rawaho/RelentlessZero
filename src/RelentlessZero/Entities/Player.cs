@@ -118,7 +118,9 @@ namespace RelentlessZero.Entities
             foreach (string roomName in CurrentRooms.ToArray())
                 LobbyManager.RemovePlayer(roomName, this);
 
-            SaveScrolls();
+            foreach (var scroll in Scrolls)
+                scroll.Save();
+
             SavePlayer();
         }
 
@@ -187,25 +189,18 @@ namespace RelentlessZero.Entities
                     var scrollTemplate = AssetManager.GetScrollTemplate(scrollEntry);
                     if (scrollTemplate == null)
                     {
-                        LogManager.Write("Player", "Scroll instance {0} has invalid scroll entry {1}! Skipping.",
-                            scrollId, scrollEntry);
+                        LogManager.Write("Player", $"Scroll instance {scrollId} has invalid scroll entry {scrollEntry}! Skipping.");
                         continue;
                     }
 
-                    var scrollInstance = new ScrollInstance(scrollTemplate);
-                    scrollInstance.Id         = scrollId;
-                    scrollInstance.Timestamp  = scrollInstanceResult.Read<long>(i, "timestamp");
-                    scrollInstance.Level      = scrollInstanceResult.Read<byte>(i, "level");
+                    var scrollInstance = new ScrollInstance(scrollId, scrollTemplate, scrollInstanceResult.Read<byte>(i, "level"),
+                        scrollInstanceResult.Read<long>(i, "timestamp"), scrollInstanceResult.Read<bool>(i, "tradable"), Id);
 
                     if (scrollInstance.Level > ScrollInstance.MaxLevel)
                     {
-                        LogManager.Write("Player", "Scroll instance {0} has invalid scroll level {1}! Skipping.",
-                            scrollInstance.Id, scrollInstance.Level);
+                        LogManager.Write("Player", $"Scroll instance {scrollInstance.Id} has invalid scroll level {scrollInstance.Level}! Skipping.");
                         continue;
                     }
-
-                    scrollInstance.Tradable   = scrollInstanceResult.Read<bool>(i, "tradable");
-                    scrollInstance.SaveNeeded = false;
 
                     // tracked scroll stats
                     scrollInstance.Stats.Damage     = scrollInstanceResult.Read<uint>(i, "damage");
@@ -264,48 +259,9 @@ namespace RelentlessZero.Entities
             }
         }
 
-        public void SaveScrolls()
-        {
-            foreach (var scroll in Scrolls)
-            {
-                // only save scrolls that have been modified since last save
-                if (!scroll.SaveNeeded)
-                    continue;
-
-                scroll.SaveNeeded = false;
-
-                string query = "INSERT INTO `scroll_instance` (`id`, `accountId`, `scrollEntry`, `level`, `timestamp`, `damage`, `destroyed`, `heal`, " +
-                    "`idolKills`, `played`, `sacrificed`, `totalGames`, `unitKills`, `wins`, `tradable`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-                    "ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `accountId` = VALUES(`accountId`), `scrollEntry` = VALUES(`scrollEntry`), " +
-                    "`level` = VALUES(`level`), `timestamp` = VALUES(`timestamp`), `damage` = VALUES(`damage`), `destroyed` = VALUES (`destroyed`), " +
-                    "`heal` = VALUES(`heal`), `idolKills` = VALUES(`idolKills`), `played` = VALUES(`played`), `sacrificed` = VALUES (`sacrificed`), " + 
-                    "`totalGames` = VALUES(`totalGames`), `unitKills` = VALUES(`unitKills`), `wins` = VALUES(`wins`), `tradable` = VALUES(`tradable`);";
-
-                DatabaseManager.Database.Execute(query, scroll.Id, Id, scroll.Scroll.Entry, scroll.Level, scroll.Timestamp, scroll.Stats.Damage,
-                     scroll.Stats.Destroyed, scroll.Stats.Heal, scroll.Stats.IdolKills, scroll.Stats.Played, scroll.Stats.Sacrificed, scroll.Stats.TotalGames,
-                     scroll.Stats.UnitKills, scroll.Stats.Wins, scroll.Tradable);
-            }
-        }
-
         public void SavePlayer()
         {
             DatabaseManager.Database.Execute("UPDATE `account_info` SET `gold` = ?, `shards` = ?, `rating` = ?, `flags` = ?", Gold, Shards, Rating, Flags);
-        }
-
-        public void CreateScroll(ScrollTemplate scrollTemplate)
-        {
-            var scrollInstance = new ScrollInstance(scrollTemplate);
-            scrollInstance.Id         = AssetManager.GetNewScrollInstanceId();
-            scrollInstance.Timestamp  = DateTime.UtcNow.Ticks;
-            scrollInstance.SaveNeeded = true;
-
-            Scrolls.Add(scrollInstance);
-        }
-
-        public void GiveAllScrolls()
-        {
-            foreach (var scroll in AssetManager.ScrollTemplateStore)
-                CreateScroll(scroll);
         }
     }
 }

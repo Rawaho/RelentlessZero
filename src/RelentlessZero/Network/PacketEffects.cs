@@ -19,6 +19,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using RelentlessZero.Entities;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 
@@ -81,31 +82,60 @@ namespace RelentlessZero.Network
         public GoldReward BlackGoldReward { get; set; }
     }
 
+    [PacketEffect("HandUpdate")]
+    public class PacketHandUpdateEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+        [JsonProperty(PropertyName = "maxScrollsForCycle")]
+        public uint SacrificeLimit { get; set; }
+        [JsonProperty(PropertyName = "cards")]
+        public List<ScrollInstance> Scrolls { get; set; }
+    }
+
     [PacketEffect("IdolUpdate")]
     public class PacketIdolUpdateEffect : PacketEffect
     {
-        public PacketIdolUpdateEffect(Idol idol) { Idol = idol; }
-
         [JsonProperty(PropertyName = "idol")]
         public Idol Idol { get; set; }
+
+        public PacketIdolUpdateEffect(Idol idol) { Idol = idol; }
     }
 
     [PacketEffect("MulliganDisabled")]
     public class PacketMulliganDisabledEffect : PacketEffect
     {
-        public PacketMulliganDisabledEffect(TileColour colour) { Colour = colour; }
-
         [JsonProperty(PropertyName = "color")]
         public TileColour Colour { get; set; }
+
+        public PacketMulliganDisabledEffect(TileColour colour) { Colour = colour; }
     }
 
     [PacketEffect("SurrenderEffect")]
     public class PacketSurrenderEffect : PacketEffect
     {
-        public PacketSurrenderEffect(TileColour colour) { Colour = colour; }
-
         [JsonProperty(PropertyName = "color")]
         [JsonConverter(typeof(StringEnumConverter))]
         public TileColour Colour { get; set; }
+
+        public PacketSurrenderEffect(TileColour colour) { Colour = colour; }
+    }
+
+    [PacketEffect("TurnBegin")]
+    public class PacketTurnBeginEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "color")]
+        public TileColour Colour { get; set; }
+        [JsonProperty(PropertyName = "turn")]
+        public uint Turn { get; set; }
+        [JsonProperty(PropertyName = "secondsLeft")]
+        public int SecondsLeft { get; set; }
+
+        public PacketTurnBeginEffect(TileColour colour, uint turn, int secondsLeft)
+        {
+            Colour      = colour;
+            Turn        = turn;
+            SecondsLeft = secondsLeft;
+        }
     }
 }

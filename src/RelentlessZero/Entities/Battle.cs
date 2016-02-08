@@ -19,6 +19,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using RelentlessZero.Managers;
 using RelentlessZero.Network;
+using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 
@@ -116,9 +117,13 @@ namespace RelentlessZero.Entities
 
         public PlayerStats Stats { get; } = new PlayerStats();
         public Idol[] Idols { get; } = new Idol[IdolCount];
-        public Deck Deck { get; set; }
         public Avatar Avatar { get; set; }
         public bool IsAI { get; }
+
+        private Deck deck;
+        private List<ScrollInstance> hand;
+        private List<ScrollInstance> library;
+        private List<ScrollInstance> graveyard;
 
         public ConcurrentQueue<PendingMove> MoveQueue { get; } = new ConcurrentQueue<PendingMove>();
 
@@ -126,6 +131,7 @@ namespace RelentlessZero.Entities
         public bool InitialConnect { get; set; }
         // player is currently disconnected from the battle
         public bool Disconnected { get; set; } = true;
+        public bool SentGameState { get; set; }
 
         public BattleSide(uint id, string name, TileColour colour, bool isAI = false)
         {
@@ -134,10 +140,21 @@ namespace RelentlessZero.Entities
             Colour         = colour;
             IsAI           = isAI;
             InitialConnect = isAI;
+            SentGameState  = isAI;
 
             // initialise idols with default health
-            for (uint i = 0; i < IdolCount; i++)
+            for (uint i = 0u; i < IdolCount; i++)
                 Idols[i] = new Idol(colour, i);
+        }
+
+        public void SetDeck(Deck deck)
+        {
+            this.deck = deck;
+            library   = new List<ScrollInstance>(deck.Scrolls.ToArray());
+            hand      = new List<ScrollInstance>();
+            graveyard = new List<ScrollInstance>();
+
+            library.Shuffle();
         }
 
         public void PlayerConnected(bool firstConnect)
@@ -162,7 +179,7 @@ namespace RelentlessZero.Entities
             MoveQueue.Enqueue(new PendingMove(moveType, scroll, srcTileX, srcTileY, dstTileX, srcTileY));
         }
 
-        public void DamageIdol(uint idol, uint damage, PacketNewEffects packetNewEffects)
+        public void DamageIdol(uint idol, uint damage, PacketNewEffects newEffects)
         {
             if (idol >= IdolCount)
                 return;
@@ -173,7 +190,59 @@ namespace RelentlessZero.Entities
 
             Idols[idol].Hp -= damage;
 
-            packetNewEffects.Effects.Add(new PacketIdolUpdateEffect(Idols[idol]));
+            newEffects.Effects.Add(new PacketIdolUpdateEffect(Idols[idol]));
+        }
+
+        public void DrawCard(PacketNewEffects newEffects, uint count = 1u)
+        {
+            for (uint i = 0u; i < count; i++)
+            {
+                if (library.Count == 0)
+                {
+                    // no cards available, shuffle graveyard back into the library
+                    library.InsertRange(0, graveyard.ToArray());
+                    library.Shuffle();
+                    graveyard.Clear();
+                }
+
+                hand.Add(library.Pop());
+                Stats.ScrollsDrawn++;
+            }
+
+            var handUpdate = new PacketHandUpdateEffect
+            {
+                ProfileId      = Id,
+                SacrificeLimit = 7u,        // TODO
+                Scrolls        = hand
+            };
+
+            newEffects.Effects.Add(handUpdate);
+        }
+
+        public PacketGameState.SideGameState BuildGameState()
+        {
+            var sideGameState = new PacketGameState.SideGameState
+            {
+                Name  = Name,
+                Board = new PacketGameState.SideBoard
+                {
+                    Colour = Colour,
+                    Tiles  = new string[0],                             // TODO
+                    Idols  = new uint[5]
+                },
+
+                Mulligan      = true,                                   // TODO
+                Assets        = new PacketGameState.SideAssets(),       // TODO
+                RuleUpdates   = new string[0],                          // TODO
+                HandSize      = hand.Count,
+                LibrarySize   = library.Count,
+                GraveyardSize = library.Count
+            };
+
+            for (uint i = 0u; i < IdolCount; i++)
+                sideGameState.Board.Idols[i] = Idols[i].Hp;
+
+            return sideGameState;
         }
     }
 
@@ -184,6 +253,8 @@ namespace RelentlessZero.Entities
         public const uint SideCount         = 2u;
         public const uint RewardForIdolKill = 10u;
 
+        private const uint DefaultHandSize  = 4u;
+
         private uint sideId;
 
         public uint Id { get; }
@@ -191,15 +262,17 @@ namespace RelentlessZero.Entities
         public AiDifficulty Difficulty { get; }
         public BattlePhase Phase { get; set; } = BattlePhase.Init;
 
-        public uint RoundTimer { get; set; }            // time remaining in current turn
+        public uint RoundTimer { get; set; }            // time remaining in current turn (in milliseconds)
         public int RoundTimeSeconds { get; }            // total time of a single turn (-1 for unlimited)
-        public TileColour CurrentTurn { get; set; } = TileColour.unknown;
+        public TileColour CurrentTurn { get; set; }
+        public uint CurrentRound { get; set; }
 
         public BattleSide[] Side { get; } = new BattleSide[SideCount];
         public BattleSide BlackSide { get; set; }
         public BattleSide WhiteSide { get; set; }
 
         public bool Expired { get; set; }
+        public bool SentGameInfo { get; set; }
 
         // used when waiting for players to initially connect
         public uint StartAttemptTimer { get; set; }
@@ -230,7 +303,55 @@ namespace RelentlessZero.Entities
         // returns the side corresponding to a colour, if opponent is true the opposite side is returned instead
         public BattleSide GetSide(TileColour colour, bool opponent = false)
         {
-            return (colour == TileColour.black ? (opponent == true ? WhiteSide : BlackSide) : (opponent == true ? BlackSide : WhiteSide));
+            return colour == TileColour.black ? (opponent == true ? WhiteSide : BlackSide) : (opponent == true ? BlackSide : WhiteSide);
+        }
+
+        private bool FirstRound() { return CurrentRound == 1; }
+
+        public void StartRound()
+        {
+            CurrentRound++;
+
+            CurrentTurn = FirstRound() ? Helper.RandomColour() : GetSide(CurrentTurn, true).Colour;
+            Phase       = GetSide(CurrentTurn).IsAI ? BattlePhase.Main : BattlePhase.PreMain;
+
+            if (Type != BattleType.SP_QUICKMATCH)
+                RoundTimer = (uint)TimeSpan.FromSeconds(RoundTimeSeconds).TotalMilliseconds;
+
+            // handle first round
+            var newEffects = new PacketNewEffects();
+            if (FirstRound())
+            {
+                foreach (var battleSide in Side)
+                {
+                    // draw initial scrolls for hand
+                    battleSide.DrawCard(newEffects, DefaultHandSize);
+                    WorldManager.Send(newEffects, battleSide.Id);
+                }
+
+                newEffects = new PacketNewEffects();
+            }
+
+            // TurnBeginEffect makes client request new round, PlayerStartRound will be called on request to continue round start
+            newEffects.Effects.Add(new PacketTurnBeginEffect(CurrentTurn, CurrentRound, RoundTimeSeconds));
+            WorldManager.Send(newEffects, BlackSide.Id, WhiteSide.Id);
+        }
+
+        public void PlayerStartRound()
+        {
+            Phase = BattlePhase.Main;
+
+            var currentSide = GetSide(CurrentTurn);
+
+            var newEffects = new PacketNewEffects();
+            currentSide.DrawCard(newEffects);
+            WorldManager.Send(newEffects, currentSide.Id);
+        }
+
+        public void EndRound()
+        {
+            // TODO: update units, spells, enchantments ect...
+            StartRound();
         }
 
         public void EndGame(TileColour winningColour, bool surrender = false)
@@ -243,20 +364,19 @@ namespace RelentlessZero.Entities
             var winningSide = GetSide(winningColour);
             var losingSide  = GetSide(winningColour, true);
 
-            var packetNewEffects = new PacketNewEffects();
-
+            var newEffects = new PacketNewEffects();
             if (surrender)
             {
-                packetNewEffects.Effects.Add(new PacketSurrenderEffect(losingSide.Colour));
+                newEffects.Effects.Add(new PacketSurrenderEffect(losingSide.Colour));
 
                 // destroy remaining idols on losing side
                 for (uint i = 0; i < BattleSide.IdolCount; i++)
-                    losingSide.DamageIdol(i, Idol.FullHp, packetNewEffects);
+                    losingSide.DamageIdol(i, Idol.FullHp, newEffects);
             }
 
             // TODO: calculate rewards
 
-            var packetEndGameEffect = new PacketEndGameEffect()
+            var endGameEffect = new PacketEndGameEffect()
             {
                 Winner          = winningSide.Colour,
                 BlackStats      = BlackSide.Stats,
@@ -265,13 +385,9 @@ namespace RelentlessZero.Entities
                 WhiteGoldReward = new GoldReward()
             };
 
-            packetNewEffects.Effects.Add(packetEndGameEffect);
+            newEffects.Effects.Add(endGameEffect);
 
-            WorldManager.Send(packetNewEffects, BlackSide.Id, WhiteSide.Id);
-        }
-
-        public void EndTurn()
-        {
+            WorldManager.Send(newEffects, BlackSide.Id, WhiteSide.Id);
         }
 
         public void LeaveGame(TileColour colour)
@@ -331,9 +447,20 @@ namespace RelentlessZero.Entities
             return gameInfo;
         }
 
-        /*public PacketGameState BuildGameState()
+        public PacketGameState BuildGameState()
         {
+            var gameState = new PacketGameState()
+            {
+                BlackState   = BlackSide.BuildGameState(),
+                WhiteState   = BlackSide.BuildGameState(),
+                ActiveColour = CurrentTurn,
+                Phase        = Phase,
+                Turn         = CurrentRound,
+                Sacrificed   = false,
+                SecondsLeft  = Type == BattleType.SP_QUICKMATCH ? -1 : (int)TimeSpan.FromMilliseconds(RoundTimer).TotalSeconds,
+            };
 
-        }*/
+            return gameState;
+        }
     }
 }

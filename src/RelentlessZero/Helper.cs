@@ -15,14 +15,44 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using RelentlessZero.Entities;
 using System;
+using System.Collections.Generic;
 
 namespace RelentlessZero
 {
     public static class Helper
     {
         public static bool RandomBool() { return new Random().NextDouble() >= 0.5f; }
+        public static TileColour RandomColour() { return RandomBool() ? TileColour.black : TileColour.white; }
 
         public static uint GetUnixTime() { return (uint)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds; }
+
+        public static void Shuffle<T>(this IList<T> list)
+        {
+            if (list.Count == 0)
+                return;
+
+            var random = new Random();
+
+            int n = list.Count;
+            for (int i = 0; i < n; i++)
+            {
+                int r = i + (int)(random.NextDouble() * (n - i));
+                T value = list[r];
+                list[r] = list[i];
+                list[i] = value;
+            }
+        }
+
+        public static T Pop<T>(this IList<T> list)
+        {
+            if (list.Count == 0)
+                return default(T);
+
+            T popped = list[0];
+            list.RemoveAt(0);
+            return popped;
+        }
     }
 }

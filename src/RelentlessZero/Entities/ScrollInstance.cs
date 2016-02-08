@@ -16,7 +16,8 @@
  */
 
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using RelentlessZero.Database;
+using RelentlessZero.Managers;
 using System;
 
 namespace RelentlessZero.Entities
@@ -48,10 +49,7 @@ namespace RelentlessZero.Entities
             throw new NotImplementedException();
         }
 
-        public override bool CanConvert(Type objectType)
-        {
-            return typeof(ScrollTemplate).IsAssignableFrom(objectType);
-        }
+        public override bool CanConvert(Type objectType) { return typeof(ScrollTemplate).IsAssignableFrom(objectType); }
     }
 
     public class ScrollStats
@@ -80,20 +78,56 @@ namespace RelentlessZero.Entities
     [JsonConverter(typeof(JsonScrollInstanceSerialiser))]
     public class ScrollInstance
     {
-        public const uint MaxLevel = 2;
+        public const uint MaxLevel = 2u;
 
-        public ulong Id { get; set; }
-        public ScrollTemplate Scroll { get; set; }
-        public byte Level { get; set; }
-        public long Timestamp { get; set; }
-        public ScrollStats Stats { get; set; }
-        public bool Tradable { get; set; }
+        public ulong Id { get; }
+        public ScrollTemplate Scroll { get; }
+        public byte Level { get; }
+        public long Timestamp { get; }
+        public ScrollStats Stats { get; } = new ScrollStats();
+        public bool Tradable { get; }
         public bool SaveNeeded { get; set; }
 
-        public ScrollInstance(ScrollTemplate scrollTemplate)
+        private uint accountId;
+
+        public ScrollInstance(ScrollTemplate scrollTemplate, uint owner = 0, bool instantSave = false)
         {
-            Scroll = scrollTemplate;
-            Stats  = new ScrollStats();
+            Id         = AssetManager.GetNewScrollInstanceId();
+            Scroll     = scrollTemplate;
+            Timestamp  = DateTime.UtcNow.Ticks;
+            accountId  = owner;
+            SaveNeeded = true;
+
+            if (instantSave)
+                Save();
+        }
+
+        public ScrollInstance(ulong id, ScrollTemplate scrollTemplate, byte level, long timestamp, bool isTradable, uint owner)
+        {
+            Id        = id;
+            Scroll    = scrollTemplate;
+            Timestamp = timestamp;
+            Tradable  = isTradable;
+            accountId = owner;
+        }
+
+        public void Save()
+        {
+            // only save player owned scrolls that have been modified
+            if (!SaveNeeded || accountId == 0)
+                return;
+
+            SaveNeeded = false;
+
+            string query = "INSERT INTO `scroll_instance` (`id`, `accountId`, `scrollEntry`, `level`, `timestamp`, `damage`, `destroyed`, `heal`, " +
+                "`idolKills`, `played`, `sacrificed`, `totalGames`, `unitKills`, `wins`, `tradable`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `accountId` = VALUES(`accountId`), `scrollEntry` = VALUES(`scrollEntry`), " +
+                "`level` = VALUES(`level`), `timestamp` = VALUES(`timestamp`), `damage` = VALUES(`damage`), `destroyed` = VALUES (`destroyed`), " +
+                "`heal` = VALUES(`heal`), `idolKills` = VALUES(`idolKills`), `played` = VALUES(`played`), `sacrificed` = VALUES (`sacrificed`), " +
+                "`totalGames` = VALUES(`totalGames`), `unitKills` = VALUES(`unitKills`), `wins` = VALUES(`wins`), `tradable` = VALUES(`tradable`);";
+
+            DatabaseManager.Database.Execute(query, Id, accountId, Scroll.Entry, Level, Timestamp, Stats.Damage, Stats.Destroyed, Stats.Heal,
+                Stats.IdolKills, Stats.Played, Stats.Sacrificed, Stats.TotalGames, Stats.UnitKills, Stats.Wins, Tradable);
         }
     }
 }

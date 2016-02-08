@@ -24,7 +24,9 @@ namespace RelentlessZero.Entities
         Move,
         Attack,
         PlayScroll,
-        EndTurn,
-        LeaveGame
+        StartRound,
+        EndRound,
+        LeaveGame,
+        GameState
     }
 }

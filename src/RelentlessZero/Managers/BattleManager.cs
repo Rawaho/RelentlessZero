@@ -134,12 +134,44 @@ namespace RelentlessZero.Managers
                         }
                         else if (currentBattle.BlackSide.InitialConnect && currentBattle.WhiteSide.InitialConnect)
                         {
-                            currentBattle.Phase = BattlePhase.PreMain;
+                            if (!currentBattle.SentGameInfo)
+                            {
+                                // player(s) have connected, send initial game information
+                                foreach (var battleSide in currentBattle.Side)
+                                    if (!battleSide.IsAI)
+                                        WorldManager.Send(currentBattle.BuildGameInfo(battleSide.Colour), battleSide.Id);
 
-                            // player(s) have connected, send initial game information
-                            foreach (var battleSide in currentBattle.Side)
-                                if (!battleSide.IsAI)
-                                    WorldManager.Send(currentBattle.BuildGameInfo(battleSide.Colour), battleSide.Id);
+                                currentBattle.SentGameInfo = true;
+                            }
+                            else
+                            {
+                                if (currentBattle.BlackSide.SentGameState && currentBattle.WhiteSide.SentGameState)
+                                {
+                                    // both players have requested game state information, start battle
+                                    currentBattle.StartRound();
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    //case BattlePhase.PreMain:
+                    case BattlePhase.Main:
+                    {
+                        currentBattle.GetSide(currentBattle.CurrentTurn).Stats.TotalMs += diff;
+
+                        // update battle round timer
+                        if (currentBattle.Type != BattleType.SP_QUICKMATCH)
+                        {
+                            if (currentBattle.RoundTimer <= diff)
+                                currentBattle.EndRound();
+                            else
+                                currentBattle.RoundTimer -= diff;
+                        }
+                        else
+                        {
+                            // AI currently just ends its turn
+                            if (currentBattle.GetSide(currentBattle.CurrentTurn).IsAI)
+                                currentBattle.EndRound();
                         }
                         break;
                     }
@@ -152,16 +184,22 @@ namespace RelentlessZero.Managers
             foreach (uint battleId in battlesToRemove)
                 RemoveBattle(battleId);
 
+            HandlePendingMoves();
+        }
+
+        private static void HandlePendingMoves()
+        {
             foreach (var battle in battleStore)
             {
                 var currentBattle = battle.Value;
-                if (currentBattle.Phase == BattlePhase.Init)
-                    continue;
-
                 foreach (var battleSide in currentBattle.Side)
                 {
                     PendingMove pendingMove;
                     if (!battleSide.MoveQueue.TryDequeue(out pendingMove))
+                        continue;
+
+                    // only GameState is processed for battles still in the initialisation phase
+                    if (currentBattle.Phase == BattlePhase.Init && pendingMove.MoveType != BattleMoveType.GameState)
                         continue;
 
                     switch (pendingMove.MoveType)
@@ -169,12 +207,24 @@ namespace RelentlessZero.Managers
                         case BattleMoveType.Surrender:
                             currentBattle.EndGame(currentBattle.GetSide(battleSide.Colour, true).Colour, true);
                             break;
-                        case BattleMoveType.EndTurn:
-                            currentBattle.EndTurn();
+                        case BattleMoveType.StartRound:
+                            currentBattle.PlayerStartRound();
+                            break;
+                        case BattleMoveType.EndRound:
+                            currentBattle.EndRound();
                             break;
                         case BattleMoveType.LeaveGame:
                             currentBattle.LeaveGame(battleSide.Colour);
                             break;
+                        case BattleMoveType.GameState:
+                        {
+                            WorldManager.Send(currentBattle.BuildGameState(), battleSide.Id);
+
+                            if (currentBattle.Phase == BattlePhase.Init)
+                                battleSide.SentGameState = true;
+
+                            break;
+                        }
                         default:
                             break;
                     }
@@ -282,9 +332,9 @@ namespace RelentlessZero.Managers
             var battle = new Battle(newBattleId, battleType, difficulty);
 
             // first side always contains a player (challanger)
-            var challangerSide = new BattleSide(challanger.Id, challanger.Username, Helper.RandomBool() ? TileColour.black : TileColour.white);
+            var challangerSide = new BattleSide(challanger.Id, challanger.Username, Helper.RandomColour());
             challangerSide.Avatar = challanger.Avatar;
-            challangerSide.Deck   = challangerDeck;
+            challangerSide.SetDeck(challangerDeck);
 
             if (!battleInfoStore.TryAdd(challanger.Id, new BattleInfo(newBattleId, challangerSide.Colour)))
                 return;
@@ -304,12 +354,13 @@ namespace RelentlessZero.Managers
                 opponentSide.Avatar.SetRandom();
 
                 // TODO: handle AI deck
+                opponentSide.SetDeck(challangerDeck);
             }
             else
             {
                 opponentSide = new BattleSide(opponent.Id, opponent.Username, opponentColour);
                 opponentSide.Avatar = opponent.Avatar;
-                opponentSide.Deck   = opponentDeck;
+                opponentSide.SetDeck(opponentDeck);
 
                 if (!battleInfoStore.TryAdd(opponent.Id, new BattleInfo(newBattleId, opponentColour)))
                     return;
