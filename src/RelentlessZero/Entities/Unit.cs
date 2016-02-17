@@ -15,12 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-using System.Collections.Generic;
-
 namespace RelentlessZero.Entities
 {
     public abstract class Unit
     {
+        public ScrollTemplate Template { get; }
+        public byte PositionX { get; set; }
+        public byte PositionY { get; set; }
+
         public virtual bool OnAttack(Unit victim, uint damage, DamageType type, bool victimKilled) { return false; }
         public virtual bool OnDamage(Unit attacker, uint damage, DamageType type) { return false; }
         public virtual bool OnDeath(Unit attacker, uint damage, DamageType type) { return false; }

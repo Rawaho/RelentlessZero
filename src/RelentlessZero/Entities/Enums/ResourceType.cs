@@ -25,6 +25,7 @@ namespace RelentlessZero.Entities
         DECAY,
         NONE,
         SPECIAL,
-        CARDS
+        CARDS,
+        Count       // custom value to track total values in enum
     }
 }

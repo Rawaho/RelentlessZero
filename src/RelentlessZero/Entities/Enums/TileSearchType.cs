@@ -17,19 +17,14 @@
 
 namespace RelentlessZero.Entities
 {
-    public enum BattleMoveType
+    public enum TileSearchType
     {
         None,
-        Surrender,
-        Move,
-        Attack,
-        PlayScroll,
-        StartRound,
-        EndRound,
-        LeaveGame,
-        GameState,
-        Mulligan,
-        CardInfo,
-        SacrificeScroll
+        Tile,
+        TileSelf,
+        TileOpponent,
+        Unit,
+        UnitSelf,
+        UnitOpponent
     }
 }

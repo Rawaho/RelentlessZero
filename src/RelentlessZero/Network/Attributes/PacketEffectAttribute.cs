@@ -22,7 +22,7 @@ namespace RelentlessZero.Network
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class PacketEffectAttribute : Attribute
     {
-        public string Name { get; set; }
+        public string Name { get; }
 
         public PacketEffectAttribute(string name)
         {

@@ -108,7 +108,7 @@ namespace RelentlessZero.Network.Handlers
             else
             {
                 // create new deck
-                var newDeck = new Deck(session.Player, AssetManager.GetNewDeckInstanceId(), packetDeckSaveCli.Name,
+                var newDeck = new Deck(session.Player.Id, AssetManager.GetNewDeckInstanceId(), packetDeckSaveCli.Name,
                     (ulong)DateTime.UtcNow.Ticks, DeckFlags.None);
 
                 foreach (var scrollId in session.Player.ValidatedDeck)

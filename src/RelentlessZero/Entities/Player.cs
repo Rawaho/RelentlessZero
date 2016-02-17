@@ -225,7 +225,7 @@ namespace RelentlessZero.Entities
             {
                 for (int i = 0; i < deckResult.Count; i++)
                 {
-                    var deck = new Deck(this, deckResult.Read<uint>(i, "id"), deckResult.Read<string>(i, "name"), 
+                    var deck = new Deck(Id, deckResult.Read<uint>(i, "id"), deckResult.Read<string>(i, "name"),
                         deckResult.Read<ulong>(i, "timestamp"), deckResult.Read<DeckFlags>(i, "flags"));
 
                     // get all scrolls associated with deck

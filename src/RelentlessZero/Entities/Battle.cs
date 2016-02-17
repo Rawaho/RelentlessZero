@@ -17,11 +17,13 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using RelentlessZero.Network;
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace RelentlessZero.Entities
 {
@@ -88,15 +90,17 @@ namespace RelentlessZero.Entities
     public struct PendingMove
     {
         public BattleMoveType MoveType { get; }
-        public uint Scroll { get; }
+        public ulong Scroll { get; }
         public uint SourceTileX { get; }
         public uint SourceTileY { get; }
         public uint DestinationTileX { get; }
         public uint DestinationTileY { get; }
+        public ResourceType Resource { get; }
 
-        public PendingMove(BattleMoveType moveType, uint scroll, uint srcTileX, uint srcTileY, uint dstTileX, uint dstTileY)
+        public PendingMove(BattleMoveType moveType, ulong scroll, ResourceType resource, uint srcTileX, uint srcTileY, uint dstTileX, uint dstTileY)
         {
             MoveType         = moveType;
+            Resource         = resource;
             Scroll           = scroll;
             SourceTileX      = srcTileX;
             SourceTileY      = srcTileY;
@@ -109,6 +113,8 @@ namespace RelentlessZero.Entities
     {
         public const uint IdolCount = 5u;
 
+        private const uint DefaultHandSize = 4u;
+
         public TileColour Colour { get; }
 
         // player ID and name, ID is always 0 for AI
@@ -117,13 +123,9 @@ namespace RelentlessZero.Entities
 
         public PlayerStats Stats { get; } = new PlayerStats();
         public Idol[] Idols { get; } = new Idol[IdolCount];
+        public List<Unit> Board { get; } = new List<Unit>();
         public Avatar Avatar { get; set; }
         public bool IsAI { get; }
-
-        private Deck deck;
-        private List<ScrollInstance> hand;
-        private List<ScrollInstance> library;
-        private List<ScrollInstance> graveyard;
 
         public ConcurrentQueue<PendingMove> MoveQueue { get; } = new ConcurrentQueue<PendingMove>();
 
@@ -133,6 +135,17 @@ namespace RelentlessZero.Entities
         public bool Disconnected { get; set; } = true;
         public bool SentGameState { get; set; }
 
+        public bool MulliganAvaliable { get; set; } = true;
+        public bool SacrificeAvaliable { get; set; } = true;
+
+        private Deck deck;
+        private List<ScrollInstance> hand;
+        private List<ScrollInstance> library;
+        private List<ScrollInstance> graveyard;
+
+        private short[] availableResources;
+        private short[] outputResources;
+
         public BattleSide(uint id, string name, TileColour colour, bool isAI = false)
         {
             Id             = id;
@@ -141,6 +154,9 @@ namespace RelentlessZero.Entities
             IsAI           = isAI;
             InitialConnect = isAI;
             SentGameState  = isAI;
+
+            availableResources = new short[(byte)ResourceType.Count];
+            outputResources    = new short[(byte)ResourceType.Count];
 
             // initialise idols with default health
             for (uint i = 0u; i < IdolCount; i++)
@@ -155,6 +171,7 @@ namespace RelentlessZero.Entities
             graveyard = new List<ScrollInstance>();
 
             library.Shuffle();
+            DrawCard(null, DefaultHandSize);
         }
 
         public void PlayerConnected(bool firstConnect)
@@ -173,13 +190,115 @@ namespace RelentlessZero.Entities
             Disconnected = true;
         }
 
-        // add a pending move that will be processed next battle update
-        public void AddPendingMove(BattleMoveType moveType, uint scroll = 0u, uint srcTileX = 0u, uint srcTileY = 0u, uint dstTileX = 0u, uint dstTileY = 0u)
+        public void SendActiveResources()
         {
-            MoveQueue.Enqueue(new PendingMove(moveType, scroll, srcTileX, srcTileY, dstTileX, srcTileY));
+            var activeResources = new PacketActiveResources
+            {
+                Resources = deck.Resources
+            };
+
+            WorldManager.Send(activeResources, Id);
         }
 
-        public void DamageIdol(uint idol, uint damage, PacketNewEffects newEffects)
+        // add a pending move that will be processed next battle update
+        public void AddPendingMove(BattleMoveType moveType, ulong scroll = 0ul, ResourceType resource = ResourceType.NONE, uint srcTileX = 0u, uint srcTileY = 0u, uint dstTileX = 0u, uint dstTileY = 0u)
+        {
+            MoveQueue.Enqueue(new PendingMove(moveType, scroll, resource, srcTileX, srcTileY, dstTileX, srcTileY));
+        }
+
+        // incrememnt or decrement resource value, specifying output will also update max resource value
+        public void ModifyResource(ResourceType resource, short value, bool output)
+        {
+            if (resource >= ResourceType.Count)
+                return;
+
+            try
+            {
+                checked
+                {
+                    availableResources[(byte)resource] += value;
+                    if (output)
+                        outputResources[(byte)resource] += value;
+                }
+            }
+            catch
+            {
+                LogManager.Write("Battle", "Overflow occured when modifying battle resource!");
+                return;
+            }
+        }
+
+        public ushort GetResource(ResourceType resource, bool output)
+        {
+            if (resource >= ResourceType.Count)
+                return 0;
+
+            return (ushort)(output ? outputResources : availableResources)[(byte)resource];
+        }
+
+        private bool HasEnoughResource(ResourceType resource, ushort value, out ushort resourceDeficit)
+        {
+            resourceDeficit = 0;
+
+            ushort resourceBalance = GetResource(resource, false);
+            if (resourceBalance < value)
+                resourceDeficit = (ushort)(value - resourceBalance);
+
+            return resourceDeficit == 0;
+        }
+
+        public bool HasEnoughResource(ScrollTemplate scroll)
+        {
+            ushort resourceDeficit;
+            if (!HasEnoughResource(scroll.Resource, scroll.Cost, out resourceDeficit))
+            {
+                // check if player has enough wild to cover main resource deficit
+                ushort wildDeficit;
+                return HasEnoughResource(ResourceType.SPECIAL, resourceDeficit, out wildDeficit);
+            }
+
+            return true;
+        }
+
+        public bool IsActiveResource(ResourceType resource) { return deck.HasResource(resource); }
+        private void RestoreResources() { outputResources.CopyTo(availableResources, 0); }
+
+        private PacketResources BuildResources(bool output)
+        {
+            var packetResources = new PacketResources
+            {
+                Decay  = GetResource(ResourceType.DECAY, output),
+                Energy = GetResource(ResourceType.ENERGY, output),
+                Growth = GetResource(ResourceType.GROWTH, output),
+                Order  = GetResource(ResourceType.ORDER, output),
+                Wild   = GetResource(ResourceType.SPECIAL, output),
+            };
+
+            return packetResources;
+        }
+
+        public void StartRound(PacketEffectWriter newEffects)
+        {
+            SacrificeAvaliable = true;
+
+            RestoreResources();
+            DrawCard(newEffects);
+        }
+
+        public ScrollInstance GetScrollFromHand(ulong id) { return hand.SingleOrDefault(scroll => scroll.Id == id); }
+
+        public void RemoveScrollFromHand(ScrollInstance scroll, PacketEffectWriter newEffects)
+        {
+            if (!hand.Remove(scroll))
+                return;
+
+            graveyard.Add(scroll);
+
+            if (newEffects != null)
+                HandUpdate(newEffects);
+        }
+
+        public void DamageIdol(uint idol, uint damage, PacketEffectWriter newEffects)
         {
             if (idol >= IdolCount)
                 return;
@@ -189,11 +308,25 @@ namespace RelentlessZero.Entities
                 damage = Idols[idol].Hp;
 
             Idols[idol].Hp -= damage;
-
-            newEffects.Effects.Add(new PacketIdolUpdateEffect(Idols[idol]));
+            newEffects.AddEffect(new PacketIdolUpdateEffect(Idols[idol]));
         }
 
-        public void DrawCard(PacketNewEffects newEffects, uint count = 1u)
+        public void HandUpdate(PacketEffectWriter newEffects)
+        {
+            var handUpdate = new PacketHandUpdateEffect
+            {
+                ProfileId      = Id,
+                SacrificeLimit = 7u,        // TODO
+                Scrolls        = hand
+            };
+
+            newEffects.AddEffect(handUpdate, Id);
+
+            // client doesn't update library or graveyard with only a ResourcesUpdate effect, this must be sent as well
+            newEffects.AddEffect(new PacketCardStackUpdateEffect(Colour, library.Count, graveyard.Count));
+        }
+
+        public void DrawCard(PacketEffectWriter newEffects, uint count = 1u)
         {
             for (uint i = 0u; i < count; i++)
             {
@@ -205,18 +338,69 @@ namespace RelentlessZero.Entities
                     graveyard.Clear();
                 }
 
-                hand.Add(library.Pop());
-                Stats.ScrollsDrawn++;
+                // check size again, certain cases where the player has no graveyard or library
+                if (library.Count != 0)
+                {
+                    hand.Add(library.Pop());
+                    Stats.ScrollsDrawn++;
+                }
             }
 
-            var handUpdate = new PacketHandUpdateEffect
-            {
-                ProfileId      = Id,
-                SacrificeLimit = 7u,        // TODO
-                Scrolls        = hand
-            };
+            if (newEffects != null)
+                HandUpdate(newEffects);
+        }
 
-            newEffects.Effects.Add(handUpdate);
+        public void SacrificeScroll(PacketEffectWriter newEffects, ulong scroll, ResourceType resource)
+        {
+            if (!SacrificeAvaliable)
+                return;
+
+            var scrollInstance = GetScrollFromHand(scroll);
+            if (scrollInstance == null)
+                return;
+
+            SacrificeAvaliable = false;
+
+            if (resource == ResourceType.CARDS)
+                // HandUpdate and CardStackUpdate effect will be added on scroll removal from hand
+                DrawCard(null, 2);
+            else
+                ModifyResource(resource, 1, true);
+
+            RemoveScrollFromHand(scrollInstance, newEffects);
+            RemoveMulligan(newEffects);
+
+            newEffects.AddEffect(new PacketCardSacrificedEffect(Colour, resource));
+        }
+
+        public void RemoveMulligan(PacketEffectWriter newEffects)
+        {
+            if (!MulliganAvaliable)
+                return;
+
+            MulliganAvaliable = false;
+            newEffects.AddEffect(new PacketMulliganDisabledEffect(Colour), Id);
+        }
+
+        public void Mulligan()
+        {
+            if (!MulliganAvaliable)
+                return;
+
+            MulliganAvaliable = false;
+
+            // should only ever be 5 or 6, have explicit check for hand size?
+            uint scrollCount = (uint)hand.Count;
+
+            library.InsertRange(0, hand);
+            library.Shuffle();
+            hand.Clear();
+
+            var newEffects = new PacketEffectWriter(Id);
+            DrawCard(newEffects, scrollCount);
+
+            newEffects.AddEffect(new PacketMulliganDisabledEffect(Colour));
+            newEffects.Send();
         }
 
         public PacketGameState.SideGameState BuildGameState()
@@ -231,18 +415,29 @@ namespace RelentlessZero.Entities
                     Idols  = new uint[5]
                 },
 
-                Mulligan      = true,                                   // TODO
-                Assets        = new PacketGameState.SideAssets(),       // TODO
-                RuleUpdates   = new string[0],                          // TODO
-                HandSize      = hand.Count,
-                LibrarySize   = library.Count,
-                GraveyardSize = library.Count
+                Mulligan = MulliganAvaliable,
+                Assets   = BuildAssets()
             };
 
             for (uint i = 0u; i < IdolCount; i++)
                 sideGameState.Board.Idols[i] = Idols[i].Hp;
 
             return sideGameState;
+        }
+
+        public PacketSideAssets BuildAssets()
+        {
+            var sideAssets = new PacketSideAssets
+            {
+                AvaliableResources = BuildResources(false),
+                OutputResources    = BuildResources(true),
+                RuleUpdates        = new string[0],                     // TODO
+                HandSize           = hand.Count,
+                LibrarySize        = library.Count,
+                GraveyardSize      = graveyard.Count
+            };
+
+            return sideAssets;
         }
     }
 
@@ -284,6 +479,7 @@ namespace RelentlessZero.Entities
             Type              = type;
             Difficulty        = difficulty;
             RoundTimeSeconds  = type == BattleType.SP_QUICKMATCH ? -1 : 30;     // TODO: move turn timer to config file
+            CurrentTurn       = Helper.RandomColour();
         }
 
         public void AddSide(BattleSide battleSide)
@@ -312,45 +508,49 @@ namespace RelentlessZero.Entities
         {
             CurrentRound++;
 
-            CurrentTurn = FirstRound() ? Helper.RandomColour() : GetSide(CurrentTurn, true).Colour;
-            Phase       = GetSide(CurrentTurn).IsAI ? BattlePhase.Main : BattlePhase.PreMain;
-
             if (Type != BattleType.SP_QUICKMATCH)
                 RoundTimer = (uint)TimeSpan.FromSeconds(RoundTimeSeconds).TotalMilliseconds;
 
-            // handle first round
-            var newEffects = new PacketNewEffects();
             if (FirstRound())
             {
-                foreach (var battleSide in Side)
-                {
-                    // draw initial scrolls for hand
-                    battleSide.DrawCard(newEffects, DefaultHandSize);
-                    WorldManager.Send(newEffects, battleSide.Id);
-                }
-
-                newEffects = new PacketNewEffects();
+                foreach (var side in Side)
+                    side.SendActiveResources();
             }
+            else
+                CurrentTurn = GetSide(CurrentTurn, true).Colour;
 
-            // TurnBeginEffect makes client request new round, PlayerStartRound will be called on request to continue round start
-            newEffects.Effects.Add(new PacketTurnBeginEffect(CurrentTurn, CurrentRound, RoundTimeSeconds));
-            WorldManager.Send(newEffects, BlackSide.Id, WhiteSide.Id);
+            Phase = GetSide(CurrentTurn).IsAI ? BattlePhase.Main : BattlePhase.PreMain;
+
+            // TurnBeginEffect makes client request new round, StartRoundPlayer will be called on request to continue round start
+            var newEffects = new PacketEffectWriter(BlackSide.Id, WhiteSide.Id);
+            newEffects.AddEffect(new PacketTurnBeginEffect(CurrentTurn, CurrentRound, RoundTimeSeconds));
+            newEffects.Send();
         }
 
-        public void PlayerStartRound()
+        public void StartRoundPlayer()
         {
             Phase = BattlePhase.Main;
 
-            var currentSide = GetSide(CurrentTurn);
+            var newEffects = new PacketEffectWriter(BlackSide.Id, WhiteSide.Id);
+            GetSide(CurrentTurn).StartRound(newEffects);
+            GetSide(CurrentTurn, true).HandUpdate(newEffects);
 
-            var newEffects = new PacketNewEffects();
-            currentSide.DrawCard(newEffects);
-            WorldManager.Send(newEffects, currentSide.Id);
+            // must update resources last
+            ResourceUpdate(newEffects);
+
+            newEffects.Send();
         }
 
         public void EndRound()
         {
+            var currentSide = GetSide(CurrentTurn);
+            var newEffects  = new PacketEffectWriter(BlackSide.Id, WhiteSide.Id);
+
+            currentSide.RemoveMulligan(newEffects);
+
             // TODO: update units, spells, enchantments ect...
+            newEffects.Send();
+
             StartRound();
         }
 
@@ -364,10 +564,10 @@ namespace RelentlessZero.Entities
             var winningSide = GetSide(winningColour);
             var losingSide  = GetSide(winningColour, true);
 
-            var newEffects = new PacketNewEffects();
+            var newEffects = new PacketEffectWriter(BlackSide.Id, WhiteSide.Id);
             if (surrender)
             {
-                newEffects.Effects.Add(new PacketSurrenderEffect(losingSide.Colour));
+                newEffects.AddEffect(new PacketSurrenderEffect(losingSide.Colour));
 
                 // destroy remaining idols on losing side
                 for (uint i = 0; i < BattleSide.IdolCount; i++)
@@ -385,9 +585,8 @@ namespace RelentlessZero.Entities
                 WhiteGoldReward = new GoldReward()
             };
 
-            newEffects.Effects.Add(endGameEffect);
-
-            WorldManager.Send(newEffects, BlackSide.Id, WhiteSide.Id);
+            newEffects.AddEffect(endGameEffect);
+            newEffects.Send();
         }
 
         public void LeaveGame(TileColour colour)
@@ -395,6 +594,41 @@ namespace RelentlessZero.Entities
             // TODO: broadcast left battle message to opponent
             GetSide(colour).LeaveGame(Phase == BattlePhase.End);
         }
+
+        public void CardInfo(TileColour colour, ulong scroll)
+        {
+            if (CurrentTurn != colour)
+                return;
+
+            var side = GetSide(colour);
+
+            var scrollInstance = side.GetScrollFromHand(scroll);
+            if (scrollInstance == null)
+                return;
+
+            // use board searcher to find all tiles that the scroll can be played on
+            var boardTiles = BoardSearcher.Search(scrollInstance, new BoardSearcherSide(side), new BoardSearcherSide(GetSide(colour, true)));
+
+            var cardInfo = new PacketCardInfo()
+            {
+                Data = new PacketCardInfo.CardInfoData
+                {
+                    TargetArea      = scrollInstance.Scroll.TargetArea,
+                    SelectableTiles = new PacketCardInfo.SelectableTiles
+                    {
+                        // client expects board tiles list inside a list, there a reason for this?
+                        TileSets = new List<List<BoardSearcherTile>>() { boardTiles }
+                    }
+                },
+
+                Scroll    = scrollInstance,
+                Resources = side.HasEnoughResource(scrollInstance.Scroll)
+            };
+
+            WorldManager.Send(cardInfo, side.Id);
+        }
+
+        public void ResourceUpdate(PacketEffectWriter newEffects) { newEffects.AddEffect(new PacketResourcesUpdateEffect(BlackSide.BuildAssets(), WhiteSide.BuildAssets())); }
 
         public PacketGameInfo BuildGameInfo(TileColour colour)
         {

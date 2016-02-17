@@ -17,6 +17,7 @@
 
 using RelentlessZero.Entities;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace RelentlessZero
@@ -53,6 +54,12 @@ namespace RelentlessZero
             T popped = list[0];
             list.RemoveAt(0);
             return popped;
+        }
+
+        public static void Clear<T>(this ConcurrentQueue<T> queue)
+        {
+            T ignoredItem;
+            while (queue.TryDequeue(out ignoredItem)) { }
         }
     }
 }

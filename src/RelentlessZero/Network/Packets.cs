@@ -58,7 +58,7 @@ namespace RelentlessZero.Network
         [JsonProperty(PropertyName = "numberOfUsers")]
         public uint NumberOfUsers { get; set; }
     }
-    
+
     public class PacketProfile
     {
         [JsonProperty(PropertyName = "id")]
@@ -115,12 +115,49 @@ namespace RelentlessZero.Network
         public string FeatureType { get; set; }
     }
 
+    public class PacketResources
+    {
+        [JsonProperty(PropertyName = "DECAY")]
+        public ushort Decay { get; set; }
+        [JsonProperty(PropertyName = "ORDER")]
+        public ushort Order { get; set; }
+        [JsonProperty(PropertyName = "ENERGY")]
+        public ushort Energy { get; set; }
+        [JsonProperty(PropertyName = "GROWTH")]
+        public ushort Growth { get; set; }
+        [JsonProperty(PropertyName = "SPECIAL")]
+        public ushort Wild { get; set; }
+    }
+
+    public class PacketSideAssets
+    {
+        [JsonProperty(PropertyName = "availableResources")]
+        public PacketResources AvaliableResources { get; set; }
+        [JsonProperty(PropertyName = "outputResources")]
+        public PacketResources OutputResources { get; set; }
+        [JsonProperty(PropertyName = "ruleUpdates")]
+        public string[] RuleUpdates { get; set; } // TODO
+        [JsonProperty(PropertyName = "handSize")]
+        public int HandSize { get; set; }
+        [JsonProperty(PropertyName = "librarySize")]
+        public int LibrarySize { get; set; }
+        [JsonProperty(PropertyName = "graveyardSize")]
+        public int GraveyardSize { get; set; }
+    }
+
     // ----------------------------------------------------------------
     // Packet Structures
     // ----------------------------------------------------------------
 
     [Packet("ActivateGame", PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketActivateGame : PacketHeader { }
+
+    [Packet("ActiveResources", PacketDirection.ServerToClient, SessionType.Battle)]
+    public class PacketActiveResources : PacketHeader
+    {
+        [JsonProperty(PropertyName = "types", ItemConverterType = typeof(StringEnumConverter))]
+        public List<ResourceType> Resources { get; set; }
+    }
 
     [Packet("AvatarTypes", PacketDirection.ServerToClient, SessionType.Lobby)]
     public class PacketAvatarTypes : PacketHeader
@@ -136,6 +173,32 @@ namespace RelentlessZero.Network
         public string IP { get; set; }
         [JsonProperty(PropertyName = "port")]
         public uint Port { get; set; }
+    }
+
+    [Packet("CardInfo", PacketDirection.ServerToClient, SessionType.Battle)]
+    public class PacketCardInfo : PacketHeader
+    {
+        public class CardInfoData
+        {
+            [JsonProperty(PropertyName = "selectableTiles")]
+            public SelectableTiles SelectableTiles;
+            [JsonProperty(PropertyName = "targetArea")]
+            [JsonConverter(typeof(StringEnumConverter))]
+            public ScrollTargetArea TargetArea { get; set; }
+        }
+
+        public class SelectableTiles
+        {
+            [JsonProperty(PropertyName = "tileSets")]
+            public List<List<BoardSearcherTile>> TileSets;
+        }
+
+        [JsonProperty(PropertyName = "card")]
+        public ScrollInstance Scroll { get; set; }
+        [JsonProperty(PropertyName = "hasEnoughResources")]
+        public bool Resources { get; set; }
+        [JsonProperty(PropertyName = "data")]
+        public CardInfoData Data { get; set; }
     }
 
     [Packet("CardTypes", PacketDirection.ServerToClient, SessionType.Lobby)]
@@ -350,10 +413,6 @@ namespace RelentlessZero.Network
             public uint[] Idols { get; set; }
         }
 
-        public class SideAssets
-        {
-        }
-
         public class SideGameState
         {
             [JsonProperty(PropertyName = "playerName")]
@@ -363,15 +422,7 @@ namespace RelentlessZero.Network
             [JsonProperty(PropertyName = "mulliganAllowed")]
             public bool Mulligan { get; set; }
             [JsonProperty(PropertyName = "assets")]
-            public SideAssets Assets { get; set; }
-            [JsonProperty(PropertyName = "ruleUpdates")]
-            public string[] RuleUpdates { get; set; } // TODO
-            [JsonProperty(PropertyName = "handSize")]
-            public int HandSize { get; set; }
-            [JsonProperty(PropertyName = "librarySize")]
-            public int LibrarySize { get; set; }
-            [JsonProperty(PropertyName = "graveyardSize")]
-            public int GraveyardSize { get; set; }
+            public PacketSideAssets Assets { get; set; }
         }
 
         [JsonProperty(PropertyName = "blackGameState")]
@@ -419,6 +470,9 @@ namespace RelentlessZero.Network
         public int Port { get; set; }
     }
 
+    [Packet("Mulligan", PacketDirection.ClientToServer, SessionType.Battle)]
+    public class PacketMulligan : PacketHeader { }
+
     // special packet, this is serialised separately
     [JsonConverter(typeof(JsonPacketNewEffectsSerializer))]
     [Packet("NewEffects", PacketDirection.ServerToClient, SessionType.Battle)]
@@ -456,6 +510,13 @@ namespace RelentlessZero.Network
     {
         [JsonProperty(PropertyName = "time")]
         public uint Time { get; set; }
+    }
+
+    [Packet("PlayCardInfo", PacketDirection.ClientToServer, SessionType.Battle)]
+    public class PacketPlayCardInfo : PacketHeader
+    {
+        [JsonProperty(PropertyName = "card")]
+        public ulong Scroll { get; set; }
     }
 
     [Packet("PlaySinglePlayerQuickMatch", PacketDirection.ClientToServer, SessionType.Lobby)]
@@ -530,6 +591,16 @@ namespace RelentlessZero.Network
     {
         [JsonProperty(PropertyName = "rooms")]
         public List<PacketFullRoom> Rooms { get; set; }
+    }
+
+    [Packet("SacrificeCard", PacketDirection.ClientToServer, SessionType.Battle)]
+    public class PacketSacrificeCard : PacketHeader
+    {
+        [JsonProperty(PropertyName = "card")]
+        public ulong Scroll { get; set; }
+        [JsonProperty(PropertyName = "resource")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public ResourceType Resource { get; set; }
     }
 
     [Packet("ServerInfo", PacketDirection.ServerToClient, SessionType.Lookup | SessionType.Lobby | SessionType.Battle, false)]

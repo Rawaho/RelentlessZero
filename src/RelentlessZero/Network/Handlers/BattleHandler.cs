@@ -18,7 +18,6 @@
 using RelentlessZero.Entities;
 using RelentlessZero.Logging;
 using RelentlessZero.Managers;
-using System.Collections.Generic;
 
 namespace RelentlessZero.Network.Handlers
 {
@@ -134,14 +133,101 @@ namespace RelentlessZero.Network.Handlers
             battle.GetSide(battleInfo.SideColour).AddPendingMove(BattleMoveType.LeaveGame);
         }
 
-        [PacketHandler("Surrender")]
-        public static void HandleSurrender(object packet, Session session)
+        [PacketHandler("Mulligan")]
+        public static void HandleMulligan(object packet, Session session)
         {
-            var player = session.Player;
+            Battle battle;
+            BattleInfo battleInfo;
+            if (!GetBattleInformation(session.Player, "Mulligan", out battle, out battleInfo))
+                return;
+
+            if (battle.CurrentTurn != battleInfo.SideColour)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to mulligan during opponent turn!");
+                return;
+            }
+
+            var battleSide = battle.GetSide(battleInfo.SideColour);
+            if (!battleSide.MulliganAvaliable)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to mulligan while it's not active!");
+                return;
+            }
+
+            battleSide.AddPendingMove(BattleMoveType.Mulligan);
+        }
+
+        [PacketHandler("PlayCardInfo")]
+        public static void HandlePlayCardInfo(object packet, Session session)
+        {
+            var playCardInfo = (PacketPlayCardInfo)packet;
 
             Battle battle;
             BattleInfo battleInfo;
-            if (!GetBattleInformation(player, "Surrender", out battle, out battleInfo))
+            if (!GetBattleInformation(session.Player, "PlayCardInfo", out battle, out battleInfo))
+                return;
+
+            // client also sends this packet on opponent turn don't log
+            if (battle.CurrentTurn != battleInfo.SideColour)
+                return;
+
+            var battleSide = battle.GetSide(battleInfo.SideColour);
+            if (battleSide.GetScrollFromHand(playCardInfo.Scroll) == null)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to request scroll play information for non existant scroll {playCardInfo.Scroll}!");
+                return;
+            }
+
+            battleSide.AddPendingMove(BattleMoveType.CardInfo, playCardInfo.Scroll);
+        }
+
+        [PacketHandler("SacrificeCard")]
+        public static void HandleSacrificeCard(object packet, Session session)
+        {
+            var sacrificeCard = (PacketSacrificeCard)packet;
+
+            Battle battle;
+            BattleInfo battleInfo;
+            if (!GetBattleInformation(session.Player, "SacrificeCard", out battle, out battleInfo))
+                return;
+
+            if (battle.CurrentTurn != battleInfo.SideColour)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to sacrifice scroll during opponent turn!");
+                return;
+            }
+
+            var battleSide = battle.GetSide(battleInfo.SideColour);
+            if (!battleSide.SacrificeAvaliable)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to sacrifice scroll during sacrifice cooldown!");
+                return;
+            }
+
+            if (battleSide.GetScrollFromHand(sacrificeCard.Scroll) == null)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to sacrifce scroll existant scroll {sacrificeCard.Scroll}!");
+                return;
+            }
+
+            if (sacrificeCard.Resource != ResourceType.CARDS && sacrificeCard.Resource != ResourceType.SPECIAL)
+            {
+                if (!battleSide.IsActiveResource(sacrificeCard.Resource))
+                {
+                    LogManager.Write("Battle", $"Player {session.Player.Id} tried to sacrifce scroll for non active resource {sacrificeCard.Resource}!");
+                    return;
+                }
+            }
+
+            battle.GetSide(battleInfo.SideColour).AddPendingMove(BattleMoveType.SacrificeScroll, sacrificeCard.Scroll, sacrificeCard.Resource);
+        }
+
+        [PacketHandler("Surrender")]
+        public static void HandleSurrender(object packet, Session session)
+        {
+            Battle battle;
+            BattleInfo battleInfo;
+            if (!GetBattleInformation(session.Player, "Surrender", out battle, out battleInfo))
                 return;
 
             battle.GetSide(battleInfo.SideColour).AddPendingMove(BattleMoveType.Surrender);

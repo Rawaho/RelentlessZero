@@ -95,8 +95,11 @@
     <Compile Include="Database\SqlResult.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Entities\Attributes\ScrollAttribute.cs" />
+    <Compile Include="Entities\Attributes\TileSearcherAttribute.cs" />
     <Compile Include="Entities\AvatarPartTemplate.cs" />
     <Compile Include="Entities\Battle.cs" />
+    <Compile Include="Entities\Battle\BoardSearcher.cs" />
     <Compile Include="Entities\Deck.cs" />
     <Compile Include="Entities\Enums\AdminRole.cs" />
     <Compile Include="Entities\Enums\AiDifficulty.cs" />
@@ -108,6 +111,7 @@
     <Compile Include="Entities\Enums\BattleType.cs" />
     <Compile Include="Entities\Enums\DamageType.cs" />
     <Compile Include="Entities\Enums\DeckFlags.cs" />
+    <Compile Include="Entities\Enums\TileSearchType.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Network\PacketDirection.cs" />
     <Compile Include="Entities\Enums\TileColor.cs" />

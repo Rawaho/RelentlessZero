@@ -17,6 +17,7 @@
 
 namespace RelentlessZero.Entities
 {
+    [Scroll(232, TileSearchType.TileSelf)]
     public class AgingKnight : Unit
     {
         public override bool OnAttack(Unit victim, uint damage, DamageType type, bool victimKilled)

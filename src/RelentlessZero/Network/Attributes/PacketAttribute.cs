@@ -22,10 +22,10 @@ namespace RelentlessZero.Network
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class PacketAttribute : Attribute
     {
-        public string Name { get; set; }
-        public PacketDirection Direction { get; set; }
-        public SessionType SessionType { get; set; }
-        public bool AuthRequired { get; set; }
+        public string Name { get; }
+        public PacketDirection Direction { get; }
+        public SessionType SessionType { get; }
+        public bool AuthRequired { get; }
 
         public bool HasDirection(PacketDirection direction) { return (Direction & direction) != 0; }
 

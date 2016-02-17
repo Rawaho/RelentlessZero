@@ -16,10 +16,10 @@
  */
 
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using RelentlessZero.Database;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace RelentlessZero.Entities
 {
@@ -33,20 +33,8 @@ namespace RelentlessZero.Entities
             writer.WriteStartObject();
             writer.WritePropertyName("name");
             writer.WriteValue(deck.Name);
-
             writer.WritePropertyName("resources");
-
-            // calculate resource string
-            string resources = string.Empty;
-            foreach (ResourceType resourceType in Enum.GetValues(typeof(ResourceType)))
-                if (deck.HasResource(resourceType))
-                    resources += resourceType.ToString() + ",";
-
-            if (resources.EndsWith(","))
-                resources = resources.Substring(0, resources.Length - 1);
-
-            writer.WriteValue(resources);
-
+            writer.WriteValue(deck.ResourceString);
             writer.WritePropertyName("valid");
             writer.WriteValue(!deck.HasFlag(DeckFlags.Invalid));
             writer.WritePropertyName("updated");
@@ -70,47 +58,49 @@ namespace RelentlessZero.Entities
     [JsonConverter(typeof(JsonDeckSerialiser))]
     public class Deck
     {
-        public uint Id { get;set; }
-        public string Name { get; set; }
+        public uint Id { get; }
+        public string Name { get; }
         public ulong Timestamp { get; set; }
         public string Age { get; set; }
-        public byte /*ResourceType*/ Resources { get; set; }
-        public DeckFlags Flags { get; set; }
+        public List<ResourceType> Resources { get; } = new List<ResourceType>();
+        public string ResourceString { get; set; }
+        public DeckFlags Flags { get; }
         public List<ScrollInstance> Scrolls { get; set; }
 
-        public Player Owner { get; set; }
+        private uint owner;
 
-        public Deck(Player owner, uint id, string name, ulong timestamp, DeckFlags flags)
+        public Deck(uint owner, uint id, string name, ulong timestamp, DeckFlags flags)
         {
-            Owner     = owner;
-            Id        = id;
-            Name      = name;
-            Timestamp = timestamp;
-            Flags     = flags;
-            Scrolls   = new List<ScrollInstance>();
+            Id         = id;
+            Name       = name;
+            Timestamp  = timestamp;
+            Flags      = flags;
+            Scrolls    = new List<ScrollInstance>();
+
+            this.owner = owner;
 
             CalculateAge();
         }
 
         public bool HasFlag(DeckFlags flag) { return (Flags & flag) != 0; }
-        public bool HasResource(ResourceType resource) { return (Resources & (1 << (byte)resource)) != 0; }
+        public bool HasResource(ResourceType resource) { return Resources.Contains(resource); }
 
         public void Save()
         {
             // save/update deck information
             DatabaseManager.Database.Execute("INSERT INTO `account_deck` (`id`, `accountId`, `name`, `timestamp`, `flags`) VALUES(?, ?, ?, ?, ?)" +
-                "ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `timestamp` = VALUES(`timestamp`), `flags` = VALUES(`flags`)", Id, Owner.Id, Name, Timestamp, Flags);
+                "ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `timestamp` = VALUES(`timestamp`), `flags` = VALUES(`flags`)", Id, owner, Name, Timestamp, Flags);
 
             // save deck scroll information
             DatabaseManager.Database.Execute("DELETE FROM `account_deck_scroll` WHERE `id` = ?", Id);
             foreach (var scroll in Scrolls)
-                DatabaseManager.Database.Execute("INSERT INTO `account_deck_scroll` (`id`, `accountId`, `scrollInstance`) VALUES(?, ?, ?);", Id, Owner.Id, scroll.Id);            
+                DatabaseManager.Database.Execute("INSERT INTO `account_deck_scroll` (`id`, `accountId`, `scrollInstance`) VALUES(?, ?, ?);", Id, owner, scroll.Id);
         }
 
         public void Delete()
         {
             // foreign key will remove scroll information for deck
-            DatabaseManager.Database.Execute("DELETE FROM `account_deck` WHERE `id` = ? AND `accountId` = ?", Id, Owner.Id);
+            DatabaseManager.Database.Execute("DELETE FROM `account_deck` WHERE `id` = ? AND `accountId` = ?", Id, owner);
         }
 
         public void CalculateAge()
@@ -160,10 +150,24 @@ namespace RelentlessZero.Entities
 
         public void CalculateResources()
         {
-            Resources = 0;
+            Resources.Clear();
             foreach (var card in Scrolls)
-                if ((Resources & (1 << (byte)card.Scroll.Resource)) == 0)
-                    Resources |= (byte)(1 << (byte)card.Scroll.Resource);
+                if (!HasResource(card.Scroll.Resource))
+                    Resources.Add(card.Scroll.Resource);
+
+            // calculate resource string
+            var stringBuilder = new StringBuilder();
+            foreach (ResourceType resourceType in Enum.GetValues(typeof(ResourceType)))
+            {
+                if (HasResource(resourceType))
+                {
+                    stringBuilder.Append(resourceType.ToString());
+                    if (resourceType != ResourceType.Count)
+                        stringBuilder.Append(",");
+                }
+            }
+
+            ResourceString = stringBuilder.ToString();
         }
     }
 }

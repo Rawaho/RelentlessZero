@@ -154,7 +154,7 @@ namespace RelentlessZero.Managers
                         }
                         break;
                     }
-                    //case BattlePhase.PreMain:
+                    case BattlePhase.PreMain:
                     case BattlePhase.Main:
                     {
                         currentBattle.GetSide(currentBattle.CurrentTurn).Stats.TotalMs += diff;
@@ -208,9 +208,10 @@ namespace RelentlessZero.Managers
                             currentBattle.EndGame(currentBattle.GetSide(battleSide.Colour, true).Colour, true);
                             break;
                         case BattleMoveType.StartRound:
-                            currentBattle.PlayerStartRound();
+                            currentBattle.StartRoundPlayer();
                             break;
                         case BattleMoveType.EndRound:
+                            battleSide.MoveQueue.Clear();
                             currentBattle.EndRound();
                             break;
                         case BattleMoveType.LeaveGame:
@@ -218,11 +219,25 @@ namespace RelentlessZero.Managers
                             break;
                         case BattleMoveType.GameState:
                         {
+                            if (battleSide.SentGameState)
+                                return;
+
+                            battleSide.SentGameState = true;
                             WorldManager.Send(currentBattle.BuildGameState(), battleSide.Id);
-
-                            if (currentBattle.Phase == BattlePhase.Init)
-                                battleSide.SentGameState = true;
-
+                            break;
+                        }
+                        case BattleMoveType.Mulligan:
+                            battleSide.Mulligan();
+                            break;
+                        case BattleMoveType.CardInfo:
+                            currentBattle.CardInfo(battleSide.Colour, pendingMove.Scroll);
+                            break;
+                        case BattleMoveType.SacrificeScroll:
+                        {
+                            var newEffects = new PacketEffectWriter(currentBattle.BlackSide.Id, currentBattle.WhiteSide.Id);
+                            battleSide.SacrificeScroll(newEffects, pendingMove.Scroll, pendingMove.Resource);
+                            currentBattle.ResourceUpdate(newEffects);
+                            newEffects.Send();
                             break;
                         }
                         default:

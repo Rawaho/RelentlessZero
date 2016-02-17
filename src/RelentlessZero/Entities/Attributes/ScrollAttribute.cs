@@ -15,21 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using System;
+
 namespace RelentlessZero.Entities
 {
-    public enum BattleMoveType
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    public class ScrollAttribute : Attribute
     {
-        None,
-        Surrender,
-        Move,
-        Attack,
-        PlayScroll,
-        StartRound,
-        EndRound,
-        LeaveGame,
-        GameState,
-        Mulligan,
-        CardInfo,
-        SacrificeScroll
+        public ushort ScrollEntry { get; }
+        public TileSearchType SearchType { get; }
+
+        public ScrollAttribute(ushort scrollEntry, TileSearchType searchType)
+        {
+            ScrollEntry = scrollEntry;
+            SearchType  = searchType;
+        }
     }
 }

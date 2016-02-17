@@ -18,6 +18,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using RelentlessZero.Entities;
+using RelentlessZero.Managers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -65,7 +66,80 @@ namespace RelentlessZero.Network
         }
     }
 
+    public class PacketEffectWriter
+    {
+        private Dictionary<uint, PacketNewEffects> newEffects;
+
+        public PacketEffectWriter(params uint[] ids)
+        {
+            newEffects = new Dictionary<uint, PacketNewEffects>();
+
+            // only build new effects for players
+            foreach (uint id in ids)
+                if (id != 0)
+                    newEffects.Add(id, new PacketNewEffects());
+        }
+
+        public void AddEffect(PacketEffect effect)
+        {
+            if (effect == null)
+                return;
+
+            foreach (var newEffect in newEffects)
+                newEffect.Value.Effects.Add(effect);
+        }
+
+        public void AddEffect(PacketEffect effect, uint id)
+        {
+            if (effect == null)
+                return;
+
+            if (newEffects.ContainsKey(id))
+                newEffects[id].Effects.Add(effect);
+        }
+
+        public void Send()
+        {
+            foreach (var newEffect in newEffects)
+                if (newEffect.Value.Effects.Count != 0)
+                    WorldManager.Send(newEffect.Value, newEffect.Key);
+        }
+    }
+
     public abstract class PacketEffect { }
+
+    [PacketEffect("CardSacrificed")]
+    public class PacketCardSacrificedEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "color")]
+        public TileColour Colour { get; }
+        [JsonProperty(PropertyName = "resource")]
+        public ResourceType Resource { get; }
+
+        public PacketCardSacrificedEffect(TileColour colour, ResourceType resource)
+        {
+            Colour   = colour;
+            Resource = resource;
+        }
+    }
+
+    [PacketEffect("CardStackUpdate")]
+    public class PacketCardStackUpdateEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "color")]
+        public TileColour Colour { get; }
+        [JsonProperty(PropertyName = "librarySize")]
+        public int LibrarySize { get; }
+        [JsonProperty(PropertyName = "graveyardSize")]
+        public int GraveyardSize { get; }
+
+        public PacketCardStackUpdateEffect(TileColour colour, int librarySize, int graveyardSize)
+        {
+            Colour        = colour;
+            LibrarySize   = librarySize;
+            GraveyardSize = graveyardSize;
+        }
+    }
 
     [PacketEffect("EndGame")]
     public class PacketEndGameEffect : PacketEffect
@@ -97,7 +171,7 @@ namespace RelentlessZero.Network
     public class PacketIdolUpdateEffect : PacketEffect
     {
         [JsonProperty(PropertyName = "idol")]
-        public Idol Idol { get; set; }
+        public Idol Idol { get; }
 
         public PacketIdolUpdateEffect(Idol idol) { Idol = idol; }
     }
@@ -106,9 +180,24 @@ namespace RelentlessZero.Network
     public class PacketMulliganDisabledEffect : PacketEffect
     {
         [JsonProperty(PropertyName = "color")]
-        public TileColour Colour { get; set; }
+        public TileColour Colour { get; }
 
         public PacketMulliganDisabledEffect(TileColour colour) { Colour = colour; }
+    }
+
+    [PacketEffect("ResourcesUpdate")]
+    public class PacketResourcesUpdateEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "blackAssets")]
+        PacketSideAssets BlackAssets { get; }
+        [JsonProperty(PropertyName = "whiteAssets")]
+        PacketSideAssets WhiteAssets { get; }
+
+        public PacketResourcesUpdateEffect(PacketSideAssets blackAssets, PacketSideAssets whiteAssets)
+        {
+            BlackAssets = blackAssets;
+            WhiteAssets = whiteAssets;
+        }
     }
 
     [PacketEffect("SurrenderEffect")]
@@ -116,7 +205,7 @@ namespace RelentlessZero.Network
     {
         [JsonProperty(PropertyName = "color")]
         [JsonConverter(typeof(StringEnumConverter))]
-        public TileColour Colour { get; set; }
+        public TileColour Colour { get; }
 
         public PacketSurrenderEffect(TileColour colour) { Colour = colour; }
     }
@@ -125,11 +214,11 @@ namespace RelentlessZero.Network
     public class PacketTurnBeginEffect : PacketEffect
     {
         [JsonProperty(PropertyName = "color")]
-        public TileColour Colour { get; set; }
+        public TileColour Colour { get; }
         [JsonProperty(PropertyName = "turn")]
-        public uint Turn { get; set; }
+        public uint Turn { get; }
         [JsonProperty(PropertyName = "secondsLeft")]
-        public int SecondsLeft { get; set; }
+        public int SecondsLeft { get; }
 
         public PacketTurnBeginEffect(TileColour colour, uint turn, int secondsLeft)
         {

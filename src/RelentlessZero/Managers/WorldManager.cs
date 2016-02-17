@@ -15,7 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-using RelentlessZero.Database;
 using RelentlessZero.Entities;
 using RelentlessZero.Network;
 using System;

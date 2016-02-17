@@ -22,7 +22,7 @@ namespace RelentlessZero.Network
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class PacketHandlerAttribute : Attribute
     {
-        public string Name { get; set; }
+        public string Name { get; }
 
         public PacketHandlerAttribute(string name)
         {

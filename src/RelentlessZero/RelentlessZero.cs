@@ -16,6 +16,7 @@
  */
 
 using RelentlessZero.Database;
+using RelentlessZero.Entities;
 using RelentlessZero.Network;
 using RelentlessZero.Managers;
 using System;
@@ -35,6 +36,7 @@ namespace RelentlessZero
                 ConfigManager.Config.Network.MySql.Username, ConfigManager.Config.Network.MySql.Password, ConfigManager.Config.Network.MySql.Database);
 
             AssetManager.LoadAssets();
+            BoardSearcher.Initialise();
             LobbyManager.Initailse();
 
             if (ConnectManager.Initialise())
