@@ -22,7 +22,9 @@
         },
         "Assets":
         {
-            "Port":8080
+            "Enable":true,
+            "Port":8082,
+            "Directory":"assets"
         }
     },
     "Room":

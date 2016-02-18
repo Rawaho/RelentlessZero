@@ -51,7 +51,9 @@ namespace RelentlessZero
 
     public class ConfigAssets
     {
+        public bool Enable { get; set; }
         public int Port { get; set; }
+        public string Directory { get; set; }
     }
 
     public class ConfigDefaultRoom
@@ -82,11 +84,12 @@ namespace RelentlessZero
     public static class ConfigManager
     {
         public static Config Config;
+
         public static void Initialise()
         {
             try
             {
-                Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("./Config.json"));
+                Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(@".\Config.json"));
             }
             catch (Exception exception)
             {

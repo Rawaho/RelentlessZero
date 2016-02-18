@@ -39,6 +39,8 @@ namespace RelentlessZero
             BoardSearcher.Initialise();
             LobbyManager.Initailse();
 
+            HttpManager.Initialise();
+
             if (ConnectManager.Initialise())
                 PacketManager.Initialise();
 
