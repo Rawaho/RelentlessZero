@@ -60,8 +60,8 @@ namespace RelentlessZero.Entities
 
     public static class BoardSearcher
     {
-        private const byte boardWidth = 3;
-        private const byte boardLength = 5;
+        public const byte BoardWidth = 3;
+        public const byte BoardLength = 5;
 
         private static Dictionary<TileSearchType, TileSearcher> tileSearchers;
         private static Dictionary<ushort, TileSearchType> scrollSearchTypes;
@@ -126,15 +126,64 @@ namespace RelentlessZero.Entities
             return selectedTiles;
         }
 
+        public static bool ParsePosition(string position, out TileColour colour, out byte positionX, out byte positionY)
+        {
+            colour    = TileColour.unknown;
+            positionX = 0;
+            positionY = 0;
+
+            if (string.IsNullOrEmpty(position))
+                return false;
+
+            var exploded = position.Split(',');
+            if (exploded.Length != 3)
+                return false;
+
+            switch (exploded[0])
+            {
+                case "b":
+                case "B":
+                    colour = TileColour.black;
+                    break;
+                case "w":
+                case "W":
+                    colour = TileColour.white;
+                    break;
+                default:
+                    return false;
+            }
+
+            if (!byte.TryParse(exploded[1], out positionY))
+                return false;
+
+            if (!byte.TryParse(exploded[2], out positionX))
+                return false;
+
+            if (positionX >= BoardWidth || positionY >= BoardLength)
+                return false;
+
+            return true;
+        }
+
+        public static bool IsTileOccupied(List<Unit> board, byte positionX, byte positionY)
+        {
+            return board.Exists(unit => unit.PositionX == positionX && unit.PositionY == positionY);
+        }
+
+        public static bool IsTileOccupied(List<BoardSearcherTile> tiles, TileColour colour, byte positionX, byte positionY)
+        {
+            return tiles.Exists(tile => tile.Colour == colour && tile.PositionX == positionX && tile.PositionY == positionY);
+        }
+
         private static void SearchTilesFree(BoardSearcherSide side, List<BoardSearcherTile> selectedTiles)
         {
-            bool[,] takenTiles = new bool[boardWidth, boardLength];
+            bool[,] takenTiles = new bool[BoardWidth, BoardLength];
 
             foreach (var unit in side.Board)
                 takenTiles[unit.PositionX, unit.PositionY] = true;
 
-            for (byte x = 0; x < boardWidth; x++)
-                for (byte y = 0; y < boardLength; y++)
+            for (byte x = 0; x < BoardWidth; x++)
+                for (byte y = 0; y < BoardLength; y++)
                     if (!takenTiles[x, y])
                         selectedTiles.Add(new BoardSearcherTile(side.Colour, x, y));
         }

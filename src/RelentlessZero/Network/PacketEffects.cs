@@ -40,7 +40,7 @@ namespace RelentlessZero.Network
             foreach (var newEffect in packetNewEffects.Effects)
             {
                 var effectAttribute = newEffect.GetType().GetCustomAttribute<PacketEffectAttribute>();
-                Contract.Requires(effectAttribute != null, "Defined PacketEffect doesn't have PacketEffect attribute!");
+                //Contract.Requires(effectAttribute != null, "Defined PacketEffect doesn't have PacketEffect attribute!");
 
                 writer.WriteStartObject();
                 writer.WritePropertyName(effectAttribute.Name);
@@ -106,7 +106,36 @@ namespace RelentlessZero.Network
         }
     }
 
+    public class EffectTarget
+    {
+        [JsonProperty(PropertyName = "color")]
+        public TileColour Colour { get; }
+        [JsonProperty(PropertyName = "position")]
+        public string Position { get; }
+
+        public EffectTarget(TileColour colour, byte positionX, byte positionY)
+        {
+            Colour   = colour;
+            Position = $"{positionY},{positionX}";
+        }
+    }
+
     public abstract class PacketEffect { }
+
+    [PacketEffect("CardPlayed")]
+    public class PacketCardPlayedEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "color")]
+        public TileColour Colour { get; }
+        [JsonProperty(PropertyName = "card")]
+        public ScrollInstance Scroll { get; }
+
+        public PacketCardPlayedEffect(TileColour colour, ScrollInstance scroll)
+        {
+            Colour = colour;
+            Scroll = scroll;
+        }
+    }
 
     [PacketEffect("CardSacrificed")]
     public class PacketCardSacrificedEffect : PacketEffect
@@ -189,15 +218,37 @@ namespace RelentlessZero.Network
     public class PacketResourcesUpdateEffect : PacketEffect
     {
         [JsonProperty(PropertyName = "blackAssets")]
-        PacketSideAssets BlackAssets { get; }
+        public PacketSideAssets BlackAssets { get; }
         [JsonProperty(PropertyName = "whiteAssets")]
-        PacketSideAssets WhiteAssets { get; }
+        public PacketSideAssets WhiteAssets { get; }
 
         public PacketResourcesUpdateEffect(PacketSideAssets blackAssets, PacketSideAssets whiteAssets)
         {
             BlackAssets = blackAssets;
             WhiteAssets = whiteAssets;
         }
+    }
+
+    [PacketEffect("StatsUpdate")]
+    public class PacketStatsUpdateEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "target")]
+        public EffectTarget Target { get; set; }
+        [JsonProperty(PropertyName = "hp")]
+        public uint Health { get; set; }
+        [JsonProperty(PropertyName = "ap")]
+        public uint Attack { get; set; }
+        [JsonProperty(PropertyName = "ac")]
+        public int Cooldown { get; set; }
+    }
+
+    [PacketEffect("SummonUnit")]
+    public class PacketSummonUnitEffect : PacketEffect
+    {
+        [JsonProperty(PropertyName = "target")]
+        public EffectTarget Target { get; set; }
+        [JsonProperty(PropertyName = "card")]
+        public ScrollInstance Scroll { get; set; }
     }
 
     [PacketEffect("SurrenderEffect")]

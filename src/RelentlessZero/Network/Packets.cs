@@ -512,6 +512,21 @@ namespace RelentlessZero.Network
         public uint Time { get; set; }
     }
 
+    [Packet("PlayCard", PacketDirection.ClientToServer, SessionType.Battle)]
+    public class PacketPlayCard : PacketHeader
+    {
+        public class PlayCardData
+        {
+            [JsonProperty(PropertyName = "positions")]
+            public List<string> Positions { get; set; }
+        }
+
+        [JsonProperty(PropertyName = "card")]
+        public ulong Scroll { get; set; }
+        [JsonProperty(PropertyName = "data")]
+        public PlayCardData Data { get; set; }
+    }
+
     [Packet("PlayCardInfo", PacketDirection.ClientToServer, SessionType.Battle)]
     public class PacketPlayCardInfo : PacketHeader
     {

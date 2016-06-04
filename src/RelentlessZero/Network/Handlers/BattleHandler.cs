@@ -157,6 +157,62 @@ namespace RelentlessZero.Network.Handlers
             battleSide.AddPendingMove(BattleMoveType.Mulligan);
         }
 
+        [PacketHandler("PlayCard")]
+        public static void HandlePlayCard(object packet, Session session)
+        {
+            var playCard = (PacketPlayCard)packet;
+
+            Battle battle;
+            BattleInfo battleInfo;
+            if (!GetBattleInformation(session.Player, "PlayCard", out battle, out battleInfo))
+                return;
+
+            if (battle.CurrentTurn != battleInfo.SideColour)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to play scroll {playCard.Scroll} during opponent turn!");
+                return;
+            }
+
+            var battleSide = battle.GetSide(battleInfo.SideColour);
+
+            var scrollInstance = battleSide.GetScrollFromHand(playCard.Scroll);
+            if (scrollInstance == null)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to play scroll {playCard.Scroll} which isn't in hand!");
+                return;
+            }
+
+            if (!battleSide.HasEnoughResource(scrollInstance.Scroll))
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to play scroll {playCard.Scroll} with insufficient resources!");
+                return;
+            }
+
+            // will the client ever send more than one valid position?
+            if (playCard.Data == null || playCard.Data.Positions.Count != 1)
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to play scroll {playCard.Scroll} with no position data!");
+                return;
+            }
+
+            TileColour colour;
+            byte positionX, positionY;
+            if (!BoardSearcher.ParsePosition(playCard.Data.Positions[0], out colour, out positionX, out positionY))
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to play scroll {playCard.Scroll} with malformed position data!");
+                return;
+            }
+
+            var boardTiles = BoardSearcher.Search(scrollInstance, new BoardSearcherSide(battleSide), new BoardSearcherSide(battle.GetSide(battleSide.Colour, true)));
+            if (!BoardSearcher.IsTileOccupied(boardTiles, colour, positionX, positionY))
+            {
+                LogManager.Write("Battle", $"Player {session.Player.Id} tried to play scroll {playCard.Scroll} on invalid tile ({playCard.Data.Positions[0]})!");
+                return;
+            }
+
+            battleSide.AddPendingMove(BattleMoveType.PlayScroll, playCard.Scroll, ResourceType.NONE, TileColour.unknown, 0, 0, positionX, positionY);
+        }
+
         [PacketHandler("PlayCardInfo")]
         public static void HandlePlayCardInfo(object packet, Session session)
         {

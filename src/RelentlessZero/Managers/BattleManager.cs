@@ -207,6 +207,9 @@ namespace RelentlessZero.Managers
                         case BattleMoveType.Surrender:
                             currentBattle.EndGame(currentBattle.GetSide(battleSide.Colour, true).Colour, true);
                             break;
+                        case BattleMoveType.PlayScroll:
+                            currentBattle.PlayScroll(battleSide.Colour, pendingMove.Scroll, pendingMove.DestinationTileX, pendingMove.DestinationTileY);
+                            break;
                         case BattleMoveType.StartRound:
                             currentBattle.StartRoundPlayer();
                             break;

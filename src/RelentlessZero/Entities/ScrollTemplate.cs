@@ -175,9 +175,9 @@ namespace RelentlessZero.Entities
         public byte Attack { get; set; }
         [JsonProperty(PropertyName = "ac")]
         public sbyte Cooldown { get; set; }
-        [JsonIgnoreAttribute()]
+        [JsonIgnore()]
         public ResourceType Resource { get; set; }
-        [JsonIgnoreAttribute()]
+        [JsonIgnore()]
         public byte Cost { get; set; }
         [JsonProperty(PropertyName = "costDecay")]
         public byte CostDecay { get; set; }

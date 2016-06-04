@@ -23,6 +23,7 @@ using RelentlessZero.Network;
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace RelentlessZero.Entities
@@ -91,16 +92,18 @@ namespace RelentlessZero.Entities
     {
         public BattleMoveType MoveType { get; }
         public ulong Scroll { get; }
-        public uint SourceTileX { get; }
-        public uint SourceTileY { get; }
-        public uint DestinationTileX { get; }
-        public uint DestinationTileY { get; }
+        public byte SourceTileX { get; }
+        public byte SourceTileY { get; }
+        public byte DestinationTileX { get; }
+        public byte DestinationTileY { get; }
         public ResourceType Resource { get; }
+        public TileColour Colour { get; }
 
-        public PendingMove(BattleMoveType moveType, ulong scroll, ResourceType resource, uint srcTileX, uint srcTileY, uint dstTileX, uint dstTileY)
+        public PendingMove(BattleMoveType moveType, ulong scroll, ResourceType resource, TileColour colour, byte srcTileX, byte srcTileY, byte dstTileX, byte dstTileY)
         {
             MoveType         = moveType;
             Resource         = resource;
+            Colour           = colour;
             Scroll           = scroll;
             SourceTileX      = srcTileX;
             SourceTileY      = srcTileY;
@@ -201,9 +204,9 @@ namespace RelentlessZero.Entities
         }
 
         // add a pending move that will be processed next battle update
-        public void AddPendingMove(BattleMoveType moveType, ulong scroll = 0ul, ResourceType resource = ResourceType.NONE, uint srcTileX = 0u, uint srcTileY = 0u, uint dstTileX = 0u, uint dstTileY = 0u)
+        public void AddPendingMove(BattleMoveType moveType, ulong scroll = 0ul, ResourceType resource = ResourceType.NONE, TileColour colour = TileColour.unknown, byte srcTileX = 0, byte srcTileY = 0, byte dstTileX = 0, byte dstTileY = 0)
         {
-            MoveQueue.Enqueue(new PendingMove(moveType, scroll, resource, srcTileX, srcTileY, dstTileX, srcTileY));
+            MoveQueue.Enqueue(new PendingMove(moveType, scroll, resource, colour, srcTileX, srcTileY, dstTileX, dstTileY));
         }
 
         // incrememnt or decrement resource value, specifying output will also update max resource value
@@ -401,6 +404,27 @@ namespace RelentlessZero.Entities
 
             newEffects.AddEffect(new PacketMulliganDisabledEffect(Colour));
             newEffects.Send();
+        }
+
+        public bool SummonUnit(ScrollInstance scrollInstance, byte positionX, byte positionY, PacketEffectWriter newEffects = null)
+        {
+            Contract.Requires<ArgumentNullException>(scrollInstance != null);
+            Contract.Requires<ArgumentOutOfRangeException>(positionX < BoardSearcher.BoardWidth && positionY < BoardSearcher.BoardLength);
+
+            if (BoardSearcher.IsTileOccupied(Board, positionX, positionY))
+                return false;
+
+            var child = AssetManager.GetUnitChild(scrollInstance.Scroll.Entry);
+            var unit  = (child != null ? (Unit)Activator.CreateInstance(child) : new Unit(this, scrollInstance, positionX, positionY, newEffects));
+            unit.OnSummon();
+
+            Board.Add(unit);
+
+            // add after OnSummon as stats might be changed in override
+            if (newEffects != null)
+                unit.StatsUpdate(newEffects);
+
+            return true;
         }
 
         public PacketGameState.SideGameState BuildGameState()
@@ -626,6 +650,35 @@ namespace RelentlessZero.Entities
             };
 
             WorldManager.Send(cardInfo, side.Id);
+        }
+
+        public void PlayScroll(TileColour colour, ulong scroll, byte positionX, byte positionY)
+        {
+            Contract.Requires<ArgumentOutOfRangeException>(colour != TileColour.unknown);
+            Contract.Requires<ArgumentOutOfRangeException>(scroll != 0);
+            Contract.Requires<ArgumentOutOfRangeException>(positionX < BoardSearcher.BoardWidth && positionY < BoardSearcher.BoardLength);
+
+            if (CurrentTurn != colour)
+                return;
+
+            var side = GetSide(colour);
+            Contract.Assert(side != null);
+
+            var scrollInstance = side.GetScrollFromHand(scroll);
+            if (scrollInstance == null)
+                return;
+
+            var newEffects = new PacketEffectWriter(BlackSide.Id, WhiteSide.Id);
+            if (side.SummonUnit(scrollInstance, positionX, positionY, newEffects))
+            {
+                side.RemoveScrollFromHand(scrollInstance, newEffects);
+                side.ModifyResource(scrollInstance.Scroll.Resource, (short)(-scrollInstance.Scroll.Cost), false);
+                ResourceUpdate(newEffects);
+
+                newEffects.AddEffect(new PacketCardPlayedEffect(colour, scrollInstance));
+            }
+
+            newEffects.Send();
         }
 
         public void ResourceUpdate(PacketEffectWriter newEffects) { newEffects.AddEffect(new PacketResourcesUpdateEffect(BlackSide.BuildAssets(), WhiteSide.BuildAssets())); }

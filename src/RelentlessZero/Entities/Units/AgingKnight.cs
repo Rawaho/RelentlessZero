@@ -15,14 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using RelentlessZero.Network;
+
 namespace RelentlessZero.Entities
 {
     [Scroll(232, TileSearchType.TileSelf)]
     public class AgingKnight : Unit
     {
-        public override bool OnAttack(Unit victim, uint damage, DamageType type, bool victimKilled)
-        {
-            return true;
-        }
+        public AgingKnight(BattleSide owner, ScrollInstance scrollInstance, byte positionX, byte positionY, PacketEffectWriter newEffects = null)
+            : base(owner, scrollInstance, positionX, positionY, newEffects) { }
+
+        public override void OnAttack(Unit victim, uint damage, DamageType type, bool victimKilled) { MaxCooldown++; }
     }
 }

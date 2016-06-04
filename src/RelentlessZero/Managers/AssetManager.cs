@@ -23,6 +23,7 @@ using RelentlessZero.Network;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace RelentlessZero.Managers
 {
@@ -41,6 +42,8 @@ namespace RelentlessZero.Managers
         private static List<AbilityTemplate> abilityTemplateStore;
         private static List<PassiveTemplate> passiveTemplateStore;
         private static List<TagTemplate> tagTemplateStore;
+
+        private static Dictionary<ushort, Type> unitChildStore;
 
         // scroll template stores
         public static List<ScrollTemplate> ScrollTemplateStore { get; set; }
@@ -63,6 +66,8 @@ namespace RelentlessZero.Managers
             // cache packet data
             CacheCardTypeData();
             CacheAvatarTypeData();
+
+            LoadUnitChildren();
         }
 
         private static void LoadAvatarPartTemplates()
@@ -440,5 +445,16 @@ namespace RelentlessZero.Managers
             lock (deckInstanceIdLock)
                 return deckInstanceId++;
         }
+
+        private static void LoadUnitChildren()
+        {
+            unitChildStore = new Dictionary<ushort, Type>();
+
+            foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+                if (type.GetCustomAttributes<ScrollAttribute>().Count() == 1)
+                    unitChildStore[type.GetCustomAttributes<ScrollAttribute>().First().ScrollEntry] = type;
+        }
+
+        public static Type GetUnitChild(ushort entry) { return unitChildStore.SingleOrDefault(child => child.Key == entry).Value; }
     }
 }
