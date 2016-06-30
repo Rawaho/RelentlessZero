@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using RelentlessZero.Command;
 using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using RelentlessZero.Entities;
@@ -188,9 +189,26 @@ namespace RelentlessZero.Network.Handlers
         {
             var roomChatMessage = (PacketRoomChatMessage)packet;
 
-            // TODO: command stuff here...
+            if (string.IsNullOrWhiteSpace(roomChatMessage.Msg) || roomChatMessage.Msg.Length > 512)
+            {
+                LogManager.Write("Player", $"Player {session.Player.Id} sent malformed `RoomChatMessage` message!");
+                return;
+            }
 
-            LobbyManager.BroadcastMessage(roomChatMessage.RoomName, roomChatMessage.Text, session.Player.Username);
+            if (roomChatMessage.Msg.StartsWith("!"))
+            {
+                string command;
+                string[] arguments;
+                CommandManager.ParseCommand(roomChatMessage.Msg, out command, out arguments);
+
+                var commandResult = CommandManager.CanInvokeCommand(session, command, arguments);
+                if (commandResult != CommandResult.Ok)
+                    session.Player.SendRoomMessage("Message", CommandManager.CommandResultError(commandResult, command));
+                else
+                    CommandManager.HandleCommand(session, command, arguments);
+            }
+            else
+                LobbyManager.BroadcastMessage(roomChatMessage.RoomName, roomChatMessage.Text, session.Player.Username);
         }
 
         [PacketHandler("RoomEnter")]

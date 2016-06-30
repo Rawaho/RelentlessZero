@@ -258,7 +258,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CommandManager.cs" />
+    <Compile Include="Command\Commands\AccountCommands.cs" />
+    <Compile Include="Command\CommandHandlerAttribute.cs" />
+    <Compile Include="Command\CommandManager.cs" />
     <Compile Include="ConfigManager.cs" />
     <Compile Include="Cryptography\Rsa.cs" />
     <Compile Include="Cryptography\Sha.cs" />

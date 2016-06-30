@@ -311,10 +311,6 @@ namespace RelentlessZero.Managers
 
         public static bool BroadcastMessage(string roomName, string message, string from)
         {
-            // both these checks are preformed client side as well
-            if (string.IsNullOrWhiteSpace(message) || message.Length > 512)
-                return false;
-
             RoomInfo room;
             if (!roomStore.TryGetValue(roomName, out room))
                 return false;

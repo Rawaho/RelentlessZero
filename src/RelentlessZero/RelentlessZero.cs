@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using RelentlessZero.Command;
 using RelentlessZero.Database;
 using RelentlessZero.Entities;
 using RelentlessZero.Network;
@@ -43,6 +44,8 @@ namespace RelentlessZero
 
             if (ConnectManager.Initialise())
                 PacketManager.Initialise();
+
+            CommandManager.Initialise();
 
             WorldManager.StartWorldUpdate();
         }
