@@ -31,15 +31,16 @@ namespace RelentlessZero.Managers
 
         private static ConcurrentDictionary<string, Session> sessionMap;
 
+        // contains sessions that have connected in last 24 hours, used with OverallStats packet
+        private static ConcurrentDictionary<uint, DateTime> sessionTodayStore;
+
         private static volatile bool killWorldUpdate;
 
         static WorldManager()
         {
-            sessionCounter     = 0u;
             sessionCounterLock = new object();
-
             sessionMap         = new ConcurrentDictionary<string, Session>();
-            killWorldUpdate    = false;
+            sessionTodayStore  = new ConcurrentDictionary<uint, DateTime>();
         }
 
         public static void StartWorldUpdate()
@@ -59,6 +60,16 @@ namespace RelentlessZero.Managers
 
                 BattleManager.Update(timeDiff);
 
+                // remove any tracked sessions that are over 24 hours old
+                foreach (var session in sessionTodayStore.ToArray())
+                {
+                    if (session.Value.Second + 86400 <= startTime.Second)
+                    {
+                        DateTime timestamp;
+                        sessionTodayStore.TryRemove(session.Key, out timestamp);
+                    }
+                }
+
                 Thread.Sleep(1);
                 timeDiff = (uint)(DateTime.UtcNow - startTime).TotalMilliseconds;
             }
@@ -76,6 +87,9 @@ namespace RelentlessZero.Managers
             {
                 if (!session.Player.HasFlag(PlayerFlags.HidePlayer))
                     SessionCountIncrement();
+
+                var time = DateTime.UtcNow;
+                sessionTodayStore.AddOrUpdate(session.Player.Id, time, (k, v) => time);
                 return true;
             }
 
@@ -118,6 +132,7 @@ namespace RelentlessZero.Managers
             }
         }
 
+        public static uint GetSessionCountToday() { return (uint)sessionTodayStore.Count; }
         public static uint GetSessionCount() { return sessionCounter; }
 
         private static void SessionCountIncrement()

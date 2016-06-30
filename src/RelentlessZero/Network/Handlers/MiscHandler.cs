@@ -54,7 +54,7 @@ namespace RelentlessZero.Network.Handlers
             {
                 ServerName       = ConfigManager.Config.Server.Name,
                 PlayersOnline    = WorldManager.GetSessionCount(),
-                PlayersOnline24h = 0u,
+                PlayersOnline24h = WorldManager.GetSessionCountToday(),
 
                 // TODO: implement this correctly
                 TopRanked     = new string[0],
