@@ -1,8 +1,36 @@
+CREATE TABLE IF NOT EXISTS `account_avatar` (
+    `id` int(10) unsigned NOT NULL DEFAULT '0',
+    `head` tinyint(4) unsigned NOT NULL DEFAULT '0',
+    `body` tinyint(4) unsigned NOT NULL DEFAULT '0',
+    `leg` tinyint(4) unsigned NOT NULL DEFAULT '0',
+    `armBack` tinyint(4) unsigned NOT NULL DEFAULT '0',
+    `armFront` tinyint(4) unsigned NOT NULL DEFAULT '0',
+    PRIMARY KEY (`id`)
+);
+
 CREATE TABLE IF NOT EXISTS `account_ban` (
     `id` int(10) unsigned NOT NULL DEFAULT '0',
     `timestamp` int(10) unsigned NOT NULL DEFAULT '0',
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
+
+CREATE TABLE IF NOT EXISTS `account_deck` (
+    `id` int(10) unsigned NOT NULL DEFAULT '0',
+    `accountId` int(10) unsigned NOT NULL DEFAULT '0',
+    `name` varchar(50) NOT NULL DEFAULT '',
+    `timestamp` bigint(20) unsigned NOT NULL DEFAULT '0',
+    `flags` tinyint(3) unsigned NOT NULL DEFAULT '0',
+    PRIMARY KEY (`id`,`accountId`)
+);
+
+CREATE TABLE IF NOT EXISTS `account_deck_scroll` (
+    `id` int(10) unsigned NOT NULL DEFAULT '0',
+    `accountId` int(10) unsigned NOT NULL DEFAULT '0',
+    `scrollInstance` int(10) unsigned NOT NULL DEFAULT '0',
+    PRIMARY KEY (`id`,`scrollInstance`,`accountId`),
+    KEY `FK__account_deck_scroll__account_deck` (`id`),
+    CONSTRAINT `FK__account_deck_scroll__account_deck` FOREIGN KEY (`id`) REFERENCES `account_deck` (`id`) ON DELETE CASCADE
+);
 
 CREATE TABLE IF NOT EXISTS `account_info` (
     `id` int(10) unsigned NOT NULL DEFAULT '0',
@@ -15,12 +43,335 @@ CREATE TABLE IF NOT EXISTS `account_info` (
     `rating` smallint(5) unsigned NOT NULL DEFAULT '0',
     `flags` smallint(5) unsigned NOT NULL DEFAULT '1027',
     PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
-INSERT INTO `account_info` (`id`, `username`, `password`, `salt`, `adminRole`, `gold`, `shards`, `rating`, `flags`) VALUES
-    (1, 'Test', 'cdddc3c043b10e2c7f884fad2c290148cac1d68df5500ed1dc7168318f957f99', 'a215b8ef54892b21b0280a07f4005aae003a3fb0', 2, 2000, 0, 0, 3);
+DROP TABLE IF EXISTS `avatar_part_template`;
+CREATE TABLE `avatar_part_template` (
+    `entry` SMALLINT(5) UNSIGNED NOT NULL DEFAULT '0',
+    `type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `part` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `filename` VARCHAR(200) NOT NULL DEFAULT '',
+    `set` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    PRIMARY KEY (`entry`)
+);
 
-CREATE TABLE IF NOT EXISTS `scroll_ability_template` (
+INSERT INTO `avatar_part_template` (`entry`, `type`, `part`, `filename`, `set`) VALUES
+    (1, 0, 0, 'back_arm_1.png', 0),
+    (2, 1, 0, 'back_arm_2.png', 0),
+    (3, 0, 0, 'back_arm_3.png', 0),
+    (4, 0, 0, 'back_arm_4.png', 0),
+    (5, 0, 0, 'back_arm_5.png', 0),
+    (6, 1, 0, 'back_arm_6.png', 0),
+    (7, 0, 0, 'back_arm_7.png', 0),
+    (8, 0, 2, 'body_1.png', 0),
+    (9, 0, 2, 'body_2.png', 0),
+    (10, 0, 2, 'body_3.png', 0),
+    (11, 0, 2, 'body_4.png', 0),
+    (12, 1, 2, 'body_5.png', 0),
+    (13, 0, 2, 'body_6.png', 0),
+    (15, 0, 4, 'front_arm_1.png', 0),
+    (16, 1, 4, 'front_arm_2.png', 0),
+    (17, 0, 4, 'front_arm_3.png', 0),
+    (18, 0, 4, 'front_arm_4.png', 0),
+    (19, 0, 4, 'front_arm_5.png', 0),
+    (20, 1, 4, 'front_arm_6.png', 0),
+    (21, 0, 4, 'front_arm_7.png', 0),
+    (22, 0, 3, 'head_1.png', 0),
+    (23, 0, 3, 'head_2.png', 0),
+    (24, 0, 3, 'head_3.png', 0),
+    (25, 0, 3, 'head_4.png', 0),
+    (26, 0, 3, 'head_5.png', 0),
+    (27, 0, 3, 'head_6.png', 0),
+    (28, 0, 3, 'head_7.png', 0),
+    (29, 1, 3, 'head_8.png', 0),
+    (30, 0, 3, 'head_9.png', 0),
+    (31, 1, 3, 'head_10.png', 0),
+    (32, 0, 3, 'head_11.png', 0),
+    (33, 0, 3, 'head_12.png', 0),
+    (34, 1, 3, 'head_13.png', 0),
+    (35, 0, 3, 'head_14.png', 0),
+    (36, 1, 3, 'head_15.png', 0),
+    (37, 0, 3, 'head_16.png', 0),
+    (38, 1, 3, 'head_17.png', 0),
+    (39, 0, 1, 'legs_1.png', 0),
+    (40, 0, 1, 'legs_2.png', 0),
+    (41, 0, 1, 'legs_3.png', 0),
+    (68, 0, 2, 'body_7.png', 1),
+    (69, 0, 2, 'body_8.png', 1),
+    (70, 0, 3, 'head_18.png', 1),
+    (71, 0, 3, 'head_19.png', 1),
+    (72, 0, 3, 'head_20.png', 1),
+    (73, 0, 3, 'head_21.png', 1),
+    (74, 0, 1, 'legs_4.png', 1),
+    (75, 0, 1, 'legs_5.png', 1),
+    (76, 0, 1, 'legs_6.png', 1),
+    (77, 0, 1, 'legs_7.png', 1),
+    (78, 2, 0, 'back_arm_18.png', 0),
+    (79, 2, 0, 'back_arm_19.png', 0),
+    (80, 2, 0, 'back_arm_20.png', 0),
+    (81, 2, 0, 'back_arm_21.png', 0),
+    (82, 2, 2, 'body_18.png', 0),
+    (83, 2, 2, 'body_19.png', 0),
+    (84, 2, 2, 'body_20.png', 0),
+    (85, 2, 2, 'body_21.png', 0),
+    (86, 2, 4, 'front_arm_18.png', 0),
+    (87, 2, 4, 'front_arm_19.png', 0),
+    (88, 2, 4, 'front_arm_20.png', 0),
+    (89, 2, 4, 'front_arm_21.png', 0),
+    (90, 2, 1, 'legs_18.png', 0),
+    (91, 2, 1, 'legs_19.png', 0),
+    (92, 2, 1, 'legs_20.png', 0),
+    (93, 2, 1, 'legs_21.png', 0),
+    (94, 0, 0, 'back_arm_1.png', 1),
+    (95, 0, 0, 'back_arm_2.png', 1),
+    (96, 0, 0, 'back_arm_3.png', 1),
+    (97, 0, 0, 'back_arm_4.png', 1),
+    (98, 0, 0, 'back_arm_5.png', 1),
+    (99, 0, 0, 'back_arm_6.png', 1),
+    (100, 0, 0, 'back_arm_7.png', 1),
+    (101, 0, 2, 'body_1.png', 1),
+    (102, 0, 2, 'body_2.png', 1),
+    (103, 0, 2, 'body_3.png', 1),
+    (104, 0, 2, 'body_4.png', 1),
+    (105, 0, 2, 'body_5.png', 1),
+    (106, 0, 2, 'body_6.png', 1),
+    (107, 0, 4, 'front_arm_1.png', 1),
+    (108, 0, 4, 'front_arm_2.png', 1),
+    (109, 0, 4, 'front_arm_3.png', 1),
+    (110, 0, 4, 'front_arm_4.png', 1),
+    (111, 0, 4, 'front_arm_5.png', 1),
+    (112, 0, 4, 'front_arm_6.png', 1),
+    (113, 0, 4, 'front_arm_7.png', 1),
+    (114, 0, 3, 'head_1.png', 1),
+    (115, 0, 3, 'head_10.png', 1),
+    (116, 0, 3, 'head_11.png', 1),
+    (117, 0, 3, 'head_12.png', 1),
+    (118, 0, 3, 'head_13.png', 1),
+    (119, 0, 3, 'head_14.png', 1),
+    (120, 0, 3, 'head_15.png', 1),
+    (121, 0, 3, 'head_16.png', 1),
+    (122, 0, 3, 'head_17.png', 1),
+    (123, 0, 3, 'head_2.png', 1),
+    (124, 0, 3, 'head_3.png', 1),
+    (125, 0, 3, 'head_4.png', 1),
+    (126, 0, 3, 'head_5.png', 1),
+    (127, 0, 3, 'head_6.png', 1),
+    (128, 0, 3, 'head_7.png', 1),
+    (129, 0, 3, 'head_8.png', 1),
+    (130, 0, 3, 'head_9.png', 1),
+    (131, 0, 1, 'legs_1.png', 1),
+    (132, 0, 1, 'legs_2.png', 1),
+    (133, 0, 1, 'legs_3.png', 1),
+    (134, 1, 3, 'head_18.png', 0),
+    (135, 1, 3, 'head_19.png', 0),
+    (136, 1, 3, 'head_20.png', 0),
+    (137, 1, 3, 'head_21.png', 0),
+    (138, 0, 1, 'legs_4.png', 0),
+    (139, 0, 1, 'legs_5.png', 0),
+    (140, 0, 1, 'legs_6.png', 0),
+    (141, 2, 0, 'back_arm_9.png', 1),
+    (144, 2, 0, 'back_arm_10.png', 1),
+    (145, 2, 0, 'back_arm_11.png', 1),
+    (146, 2, 0, 'back_arm_12.png', 1),
+    (147, 2, 2, 'body_10.png', 1),
+    (148, 2, 2, 'body_11.png', 1),
+    (149, 2, 2, 'body_12.png', 1),
+    (150, 2, 2, 'body_13.png', 1),
+    (151, 2, 4, 'front_arm_9.png', 1),
+    (152, 2, 4, 'front_arm_10.png', 1),
+    (153, 2, 4, 'front_arm_11.png', 1),
+    (154, 2, 4, 'front_arm_12.png', 1),
+    (155, 1, 3, 'head_23.png', 1),
+    (156, 1, 3, 'head_24.png', 1),
+    (157, 1, 3, 'head_25.png', 1),
+    (158, 1, 3, 'head_26.png', 1),
+    (159, 1, 3, 'head_27.png', 1),
+    (160, 1, 3, 'head_28.png', 1),
+    (161, 1, 3, 'head_29.png', 1),
+    (162, 2, 1, 'legs_9.png', 1),
+    (163, 2, 1, 'legs_10.png', 1),
+    (164, 2, 1, 'legs_11.png', 1),
+    (165, 2, 1, 'legs_12.png', 1),
+    (166, 1, 3, 'head_23.png', 0),
+    (167, 1, 3, 'head_24.png', 0),
+    (168, 2, 2, 'body_23.png', 0),
+    (169, 2, 2, 'body_24.png', 0),
+    (170, 2, 1, 'legs_23.png', 0),
+    (171, 2, 1, 'legs_24.png', 0),
+    (172, 2, 4, 'front_arm_23.png', 0),
+    (173, 2, 4, 'front_arm_24.png', 0),
+    (174, 2, 0, 'back_arm_24.png', 0),
+    (193, 2, 0, 'back_arm_23.png', 0),
+    (194, 1, 3, 'esl_head_male.png', 0),
+    (195, 1, 3, 'esl_head_female.png', 1),
+    (196, 1, 3, 'head_30_mod.png', 1),
+    (197, 1, 3, 'head_30_mod.png', 0),
+    (198, 1, 3, 'head_robot.png', 0),
+    (199, 1, 3, 'head_robot.png', 1),
+    (200, 1, 3, 'season_1_champ_female_head.png', 1),
+    (201, 1, 3, 'season_1_champ_male_head.png', 0),
+    (202, 1, 3, 'head_mojavatar.png', 0),
+    (203, 1, 3, 'head_mojavatar.png', 1),
+    (204, 2, 0, 'back_arm_100.png', 1),
+    (205, 2, 0, 'back_arm_101.png', 1),
+    (206, 2, 0, 'back_arm_102.png', 1),
+    (207, 2, 0, 'back_arm_103.png', 1),
+    (208, 2, 0, 'back_arm_104.png', 1),
+    (209, 2, 0, 'back_arm_105.png', 1),
+    (210, 2, 0, 'back_arm_106.png', 1),
+    (211, 2, 0, 'back_arm_107.png', 1),
+    (212, 2, 0, 'back_arm_108.png', 1),
+    (213, 2, 0, 'back_arm_109.png', 1),
+    (214, 2, 2, 'body_100.png', 1),
+    (215, 2, 2, 'body_101.png', 1),
+    (216, 2, 2, 'body_102.png', 1),
+    (217, 2, 2, 'body_103.png', 1),
+    (218, 2, 2, 'body_104.png', 1),
+    (219, 2, 2, 'body_105.png', 1),
+    (220, 2, 2, 'body_106.png', 1),
+    (221, 2, 2, 'body_107.png', 1),
+    (222, 2, 2, 'body_108.png', 1),
+    (223, 2, 2, 'body_109.png', 1),
+    (224, 2, 4, 'front_arm_100.png', 1),
+    (225, 2, 4, 'front_arm_101.png', 1),
+    (226, 2, 4, 'front_arm_102.png', 1),
+    (227, 2, 4, 'front_arm_103.png', 1),
+    (228, 2, 4, 'front_arm_104.png', 1),
+    (229, 2, 4, 'front_arm_105.png', 1),
+    (230, 2, 4, 'front_arm_106.png', 1),
+    (231, 2, 4, 'front_arm_107.png', 1),
+    (232, 2, 4, 'front_arm_108.png', 1),
+    (233, 2, 4, 'front_arm_109.png', 1),
+    (234, 1, 3, 'head_100.png', 1),
+    (235, 1, 3, 'head_101.png', 1),
+    (236, 1, 3, 'head_102.png', 1),
+    (237, 1, 3, 'head_103.png', 1),
+    (238, 1, 3, 'head_104.png', 1),
+    (239, 1, 3, 'head_105.png', 1),
+    (240, 1, 3, 'head_106.png', 1),
+    (241, 1, 3, 'head_107.png', 1),
+    (242, 1, 3, 'head_108.png', 1),
+    (243, 1, 3, 'head_109.png', 1),
+    (244, 2, 3, 'head_200.png', 1),
+    (245, 2, 3, 'head_201.png', 1),
+    (246, 2, 3, 'head_202.png', 1),
+    (247, 2, 3, 'head_203.png', 1),
+    (248, 2, 3, 'head_204.png', 1),
+    (249, 2, 3, 'head_205.png', 1),
+    (250, 2, 3, 'head_206.png', 1),
+    (251, 2, 3, 'head_207.png', 1),
+    (252, 2, 3, 'head_208.png', 1),
+    (253, 2, 3, 'head_209.png', 1),
+    (254, 2, 1, 'legs_100.png', 1),
+    (255, 2, 1, 'legs_101.png', 1),
+    (256, 2, 1, 'legs_102.png', 1),
+    (257, 2, 1, 'legs_103.png', 1),
+    (258, 2, 1, 'legs_104.png', 1),
+    (259, 2, 1, 'legs_105.png', 1),
+    (260, 2, 1, 'legs_106.png', 1),
+    (261, 2, 1, 'legs_107.png', 1),
+    (262, 2, 1, 'legs_108.png', 1),
+    (263, 2, 1, 'legs_109.png', 1),
+    (264, 2, 0, 'back_arm_100.png', 0),
+    (265, 2, 0, 'back_arm_101.png', 0),
+    (266, 2, 0, 'back_arm_102.png', 0),
+    (267, 2, 0, 'back_arm_103.png', 0),
+    (268, 2, 0, 'back_arm_104.png', 0),
+    (269, 2, 0, 'back_arm_105.png', 0),
+    (270, 2, 0, 'back_arm_106.png', 0),
+    (271, 2, 0, 'back_arm_107.png', 0),
+    (272, 2, 0, 'back_arm_108.png', 0),
+    (273, 2, 0, 'back_arm_109.png', 0),
+    (274, 2, 2, 'body_100.png', 0),
+    (275, 2, 2, 'body_101.png', 0),
+    (276, 2, 2, 'body_102.png', 0),
+    (277, 2, 2, 'body_103.png', 0),
+    (278, 2, 2, 'body_104.png', 0),
+    (279, 2, 2, 'body_105.png', 0),
+    (280, 2, 2, 'body_106.png', 0),
+    (281, 2, 2, 'body_107.png', 0),
+    (282, 2, 2, 'body_108.png', 0),
+    (283, 2, 2, 'body_109.png', 0),
+    (284, 2, 4, 'front_arm_100.png', 0),
+    (285, 2, 4, 'front_arm_101.png', 0),
+    (286, 2, 4, 'front_arm_102.png', 0),
+    (287, 2, 4, 'front_arm_103.png', 0),
+    (288, 2, 4, 'front_arm_104.png', 0),
+    (289, 2, 4, 'front_arm_105.png', 0),
+    (290, 2, 4, 'front_arm_106.png', 0),
+    (291, 2, 4, 'front_arm_107.png', 0),
+    (292, 2, 4, 'front_arm_108.png', 0),
+    (293, 2, 4, 'front_arm_109.png', 0),
+    (294, 1, 3, 'head_100.png', 0),
+    (295, 1, 3, 'head_101.png', 0),
+    (296, 1, 3, 'head_102.png', 0),
+    (297, 1, 3, 'head_103.png', 0),
+    (298, 1, 3, 'head_104.png', 0),
+    (299, 1, 3, 'head_105.png', 0),
+    (300, 1, 3, 'head_106.png', 0),
+    (301, 1, 3, 'head_107.png', 0),
+    (302, 1, 3, 'head_108.png', 0),
+    (303, 1, 3, 'head_109.png', 0),
+    (304, 2, 3, 'head_200.png', 0),
+    (305, 2, 3, 'head_201.png', 0),
+    (306, 2, 3, 'head_202.png', 0),
+    (307, 2, 3, 'head_203.png', 0),
+    (308, 2, 3, 'head_204.png', 0),
+    (309, 2, 3, 'head_205.png', 0),
+    (310, 2, 3, 'head_206.png', 0),
+    (311, 2, 3, 'head_207.png', 0),
+    (312, 2, 3, 'head_208.png', 0),
+    (313, 2, 3, 'head_209.png', 0),
+    (314, 2, 1, 'legs_100.png', 0),
+    (315, 2, 1, 'legs_101.png', 0),
+    (316, 2, 1, 'legs_102.png', 0),
+    (317, 2, 1, 'legs_103.png', 0),
+    (318, 2, 1, 'legs_104.png', 0),
+    (319, 2, 1, 'legs_105.png', 0),
+    (320, 2, 1, 'legs_106.png', 0),
+    (321, 2, 1, 'legs_107.png', 0),
+    (322, 2, 1, 'legs_108.png', 0),
+    (323, 2, 1, 'legs_109.png', 0),
+    (324, 1, 0, 'back_arm_weekly.png', 1),
+    (325, 1, 2, 'body_weekly.png', 1),
+    (326, 1, 4, 'front_arm_weekly.png', 1),
+    (327, 1, 3, 'head_academy.png', 1),
+    (328, 1, 3, 'head_tournament_1.png', 1),
+    (329, 1, 3, 'head_tournament_2.png', 1),
+    (330, 1, 3, 'head_tournament_3.png', 1),
+    (331, 1, 3, 'head_weekly.png', 1),
+    (332, 1, 3, 'head_weekly2.png', 1),
+    (333, 1, 1, 'legs_weekly.png', 1),
+    (334, 1, 0, 'back_arm_weekly.png', 0),
+    (335, 1, 2, 'body_weekly.png', 0),
+    (336, 1, 4, 'front_arm_weekly.png', 0),
+    (337, 1, 3, 'head_academy.png', 0),
+    (338, 1, 3, 'head_tournament_1.png', 0),
+    (339, 1, 3, 'head_tournament_2.png', 0),
+    (340, 1, 3, 'head_tournament_3.png', 0),
+    (341, 1, 3, 'head_weekly.png', 0),
+    (342, 1, 3, 'head_weekly2.png', 0),
+    (343, 1, 1, 'legs_weekly.png', 0),
+    (344, 1, 3, 'head_mod_level2.png', 1),
+    (345, 1, 3, 'head_mod_level3.png', 1),
+    (346, 1, 3, 'head_tester.png', 1),
+    (347, 1, 3, 'head_mod_level2.png', 0),
+    (348, 1, 3, 'head_mod_level3.png', 0),
+    (349, 1, 3, 'head_tester.png', 0),
+    (350, 1, 3, 'foxhead.png', 1),
+    (351, 1, 0, 'hb_back_arm.png', 1),
+    (352, 1, 4, 'hb_front_arm.png', 1),
+    (353, 1, 3, 'hb_head.png', 1),
+    (354, 1, 1, 'hb_legs.png', 1),
+    (355, 1, 2, 'hb_torso.png', 1),
+    (356, 1, 0, 'hb_back_arm.png', 0),
+    (357, 1, 4, 'hb_front_arm.png', 0),
+    (358, 1, 3, 'hb_head.png', 0),
+    (359, 1, 1, 'hb_legs.png', 0),
+    (360, 1, 2, 'hb_torso.png', 0);
+
+DROP TABLE IF EXISTS `scroll_ability_template`;
+CREATE TABLE `scroll_ability_template` (
     `entry` smallint(5) unsigned NOT NULL DEFAULT '0',
     `id` varchar(50) NOT NULL DEFAULT '',
     `name` varchar(100) NOT NULL DEFAULT '',
@@ -28,7 +379,7 @@ CREATE TABLE IF NOT EXISTS `scroll_ability_template` (
     `resource` tinyint(3) unsigned NOT NULL DEFAULT '0',
     `cost` tinyint(3) unsigned NOT NULL DEFAULT '0',
     PRIMARY KEY (`entry`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 INSERT INTO `scroll_ability_template` (`entry`, `id`, `name`, `description`, `resource`, `cost`) VALUES
     (1, 'Move', 'Move', 'Move unit to adjacent tile', 0, 0),
@@ -53,12 +404,32 @@ INSERT INTO `scroll_ability_template` (`entry`, `id`, `name`, `description`, `re
     (20, 'SnarglOmelette', 'Pay 2 Energy', 'Look at the next 2 Gravelocks in your library, and draw 1 of them.', 1, 2),
     (21, 'WindupAutomaton', 'Pay 3 Energy', 'Pay 3 Energy to increase Attack by Countdown until end of turn. Countdown is set to 0.', 1, 3);
 
-CREATE TABLE IF NOT EXISTS `scroll_passive_template` (
+CREATE TABLE IF NOT EXISTS `scroll_instance` (
+    `id` BIGINT(20) UNSIGNED NOT NULL DEFAULT '0',
+    `accountId` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `scrollEntry` SMALLINT(5) UNSIGNED NOT NULL DEFAULT '0',
+    `level` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    `timestamp` BIGINT(20) UNSIGNED NOT NULL DEFAULT '0',
+    `damage` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `destroyed` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `heal` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `idolKills` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `played` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `sacrificed` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `totalGames` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `unitKills` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `wins` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+    `tradable` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0',
+    PRIMARY KEY (`id`)
+);
+
+DROP TABLE IF EXISTS `scroll_passive_template`;
+CREATE TABLE `scroll_passive_template` (
     `entry` smallint(5) unsigned NOT NULL DEFAULT '0',
     `name` varchar(100) NOT NULL DEFAULT '',
     `description` varchar(200) NOT NULL DEFAULT '',
     PRIMARY KEY (`entry`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 INSERT INTO `scroll_passive_template` (`entry`, `name`, `description`) VALUES
     (1, 'Ranged attack', 'This unit is unaffected by effects that apply only to melee units (for example Spiky).'),
@@ -135,12 +506,13 @@ INSERT INTO `scroll_passive_template` (`entry`, `name`, `description`) VALUES
     (72, 'Resonance: Adjacent units have their Countdown decreased by 1.', 'Resonance effects are triggered when you play a spell.'),
     (73, 'Dominion: While Pack Fowl is in play, Wild is increased by 2.', 'Dominion effects are active as long as at least one opponent idol is down.');
 
-CREATE TABLE IF NOT EXISTS `scroll_tag_template` (
+DROP TABLE IF EXISTS `scroll_tag_template`;
+CREATE TABLE `scroll_tag_template` (
     `entry` smallint(5) unsigned NOT NULL DEFAULT '0',
     `name` varchar(50) NOT NULL DEFAULT '',
     `type` tinyint(3) unsigned NOT NULL DEFAULT '0',
     PRIMARY KEY (`entry`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 INSERT INTO `scroll_tag_template` (`entry`, `name`, `type`) VALUES
     (1, 'sound_attack', 3),
@@ -178,7 +550,8 @@ INSERT INTO `scroll_tag_template` (`entry`, `name`, `type`) VALUES
     (33, 'unit_no_siege', 0),
     (34, 'anim_hit_dummy', 3);
 
-CREATE TABLE IF NOT EXISTS `scroll_template` (
+DROP TABLE IF EXISTS `scroll_template`;
+CREATE TABLE `scroll_template` (
     `entry` smallint(5) unsigned NOT NULL DEFAULT '0',
     `name` varchar(50) NOT NULL DEFAULT '',
     `description` varchar(200) NOT NULL DEFAULT '',
@@ -198,7 +571,7 @@ CREATE TABLE IF NOT EXISTS `scroll_template` (
     `animationBundle` smallint(5) unsigned NOT NULL DEFAULT '0',
     `targetArea` tinyint(3) unsigned NOT NULL DEFAULT '0',
     PRIMARY KEY (`entry`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 INSERT INTO `scroll_template` (`entry`, `name`, `description`, `flavor`, `kind`, `rarity`, `health`, `attack`, `cooldown`, `resource`, `cost`, `set`, `limitedWeight`, `cardImage`, `animationImage`, `animationInfo`, `animationBundle`, `targetArea`) VALUES
     (1, 'Gravelock Elder', 'Other Gravelocks you control have +1 Health.', 'Gravelocks look up to their elders... literally.', 3, 2, 5, 4, 2, 1, 5, 3, 1, 479, 445, '54.75,50.5,0.25', 448, 3),
@@ -622,11 +995,12 @@ INSERT INTO `scroll_template` (`entry`, `name`, `description`, `flavor`, `kind`,
     (855, 'Hunter\'s Treaty', 'If you control creatures from multiple factions, creatures you control have +2 Attack.', 'Sometimes, kinship reaches further than family.', 1, 1, 0, 0, 0, 2, 2, 7, 0.25, 1283, 0, '', 0, 1),
     (856, 'Reaver\'s Treaty', 'Units you control with [Pillage] or [Dominion] have +1 Attack.', 'The combined might of the reavers and the Mudo finally forced the Empire to withdraw. The rebellion was over; merely a waypoint in history.', 1, 1, 0, 0, 0, 1, 2, 7, 0.25, 1284, 0, '', 0, 1);
 
-CREATE TABLE IF NOT EXISTS `scroll_template_ability` (
+DROP TABLE IF EXISTS `scroll_template_ability`;
+CREATE TABLE `scroll_template_ability` (
   `entry` smallint(5) unsigned NOT NULL DEFAULT '0',
   `abilityEntry` smallint(5) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`entry`,`abilityEntry`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 INSERT INTO `scroll_template_ability` (`entry`, `abilityEntry`) VALUES
     (1, 1),
@@ -803,11 +1177,12 @@ INSERT INTO `scroll_template_ability` (`entry`, `abilityEntry`) VALUES
     (828, 1),
     (829, 1);
 
-CREATE TABLE IF NOT EXISTS `scroll_template_passive` (
+DROP TABLE IF EXISTS `scroll_template_passive`;
+CREATE TABLE `scroll_template_passive` (
     `entry` smallint(5) unsigned NOT NULL DEFAULT '0',
     `passiveEntry` smallint(5) unsigned NOT NULL DEFAULT '0',
     PRIMARY KEY (`entry`,`passiveEntry`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 INSERT INTO `scroll_template_passive` (`entry`, `passiveEntry`) VALUES
     (1, 1),
@@ -990,11 +1365,12 @@ INSERT INTO `scroll_template_passive` (`entry`, `passiveEntry`) VALUES
     (855, 43),
     (856, 50);
 
-CREATE TABLE IF NOT EXISTS `scroll_template_subtype` (
+DROP TABLE IF EXISTS `scroll_template_subtype`;
+CREATE TABLE `scroll_template_subtype` (
     `entry` smallint(5) unsigned NOT NULL DEFAULT '0',
     `subType` smallint(5) unsigned NOT NULL DEFAULT '0',
     PRIMARY KEY (`entry`,`subType`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 INSERT INTO `scroll_template_subtype` (`entry`, `subType`) VALUES
     (1, 1),
@@ -1356,12 +1732,13 @@ INSERT INTO `scroll_template_subtype` (`entry`, `subType`) VALUES
     (855, 24),
     (856, 24);
 
-CREATE TABLE IF NOT EXISTS `scroll_template_tag` (
+DROP TABLE IF EXISTS `scroll_template_tag`;
+CREATE TABLE `scroll_template_tag` (
     `entry` smallint(5) unsigned NOT NULL DEFAULT '0',
     `tagEntry` smallint(5) unsigned NOT NULL DEFAULT '0',
     `value` varchar(50) NOT NULL DEFAULT '',
     PRIMARY KEY (`entry`,`tagEntry`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 INSERT INTO `scroll_template_tag` (`entry`, `tagEntry`, `value`) VALUES
     (1, 1, 'impact_gravelock_physical'),
