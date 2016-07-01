@@ -37,6 +37,7 @@ namespace RelentlessZero
                 ConfigManager.Config.Network.MySql.Username, ConfigManager.Config.Network.MySql.Password, ConfigManager.Config.Network.MySql.Database);
 
             AssetManager.LoadAssets();
+            InfoManager.Initialise();
             BoardSearcher.Initialise();
             LobbyManager.Initailse();
 

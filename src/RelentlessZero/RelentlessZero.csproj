@@ -286,6 +286,7 @@
     <Compile Include="Entities\Enums\DeckFlags.cs" />
     <Compile Include="Entities\Enums\TileSearchType.cs" />
     <Compile Include="Helper.cs" />
+    <Compile Include="Managers\InfoManager.cs" />
     <Compile Include="Network\Managers\HttpManager.cs" />
     <Compile Include="Network\PacketDirection.cs" />
     <Compile Include="Entities\Enums\TileColor.cs" />

@@ -15,16 +15,49 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using RelentlessZero.Cryptography;
+using RelentlessZero.Database;
 using RelentlessZero.Entities;
+using RelentlessZero.Managers;
 using RelentlessZero.Network;
+using System;
+using System.IO;
 
 namespace RelentlessZero.Command
 {
     class AccountCommands
     {
-        [CommandHandler("accountcreate", AdminRole.Mojang)]
-        public static void HandleAccountCreate(Session session, params string[] args)
+        [CommandHandler("accountcreate", AdminRole.Mojang, 3)]
+        public static void HandleAccountCreate(Session session, string room, params string[] args)
         {
+            string username = args[0];
+            string password = args[1];
+
+            AdminRole adminRole;
+            if (!Enum.TryParse(args[2], out adminRole) || adminRole > AdminRole.Mojang)
+            {
+                CommandManager.Write(session, room, $"Invalid AdminRole value {args[2]}!");
+                return;
+            }
+
+            if (InfoManager.GetAccountInfo(username) != null)
+            {
+                CommandManager.Write(session, room, $"Account {username} already exists!");
+                return;
+            }
+
+            string passwordSalt = Sha.Hash(Path.GetRandomFileName()).ToLower();
+            string passwordHash = Sha.Hash(password + passwordSalt, true).ToLower();
+
+            DatabaseManager.Database.Execute("INSERT INTO `account_info` (`id`, `username`, `password`, `salt`, `adminRole`) VALUES (?, ?, ?, ?, ?);",
+                InfoManager.GetNewAccountId(), username, passwordHash, passwordSalt, adminRole);
+
+            InfoManager.UpdateAccountInfo();
+
+            if (InfoManager.GetAccountInfo(username) != null)
+                CommandManager.Write(session, room, $"Account {username} successfully created!");
+            else
+                CommandManager.Write(session, room, $"Fatal error occured while creating account {username}!");
         }
     }
 }

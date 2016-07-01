@@ -195,17 +195,17 @@ namespace RelentlessZero.Network.Handlers
                 return;
             }
 
-            if (roomChatMessage.Msg.StartsWith("!"))
+            if (roomChatMessage.Text.StartsWith("!"))
             {
                 string command;
                 string[] arguments;
-                CommandManager.ParseCommand(roomChatMessage.Msg, out command, out arguments);
+                CommandManager.ParseCommand(roomChatMessage.Text, out command, out arguments);
 
                 var commandResult = CommandManager.CanInvokeCommand(session, command, arguments);
                 if (commandResult != CommandResult.Ok)
-                    session.Player.SendRoomMessage("Message", CommandManager.CommandResultError(commandResult, command));
+                    session.Player.SendRoomMessage(roomChatMessage.RoomName, CommandManager.CommandResultError(commandResult, command));
                 else
-                    CommandManager.HandleCommand(session, command, arguments);
+                    CommandManager.HandleCommand(session, roomChatMessage.RoomName, command, arguments);
             }
             else
                 LobbyManager.BroadcastMessage(roomChatMessage.RoomName, roomChatMessage.Text, session.Player.Username);

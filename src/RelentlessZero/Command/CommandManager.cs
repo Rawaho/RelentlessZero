@@ -38,7 +38,7 @@ namespace RelentlessZero.Command
     {
         private static ConcurrentDictionary<string, CommandHandlerAttribute> commandInfoStore;
 
-        delegate void CommandHandler(Session session, params string[] args);
+        delegate void CommandHandler(Session session, string room, params string[] args);
         private static ConcurrentDictionary<string, CommandHandler> commandHandlerStore;
 
         public static void Initialise()
@@ -92,7 +92,7 @@ namespace RelentlessZero.Command
                 if (commandResult != CommandResult.Ok)
                     LogManager.Write("Command Manager", CommandResultError(commandResult, command));
                 else
-                    HandleCommand(null, command, arguments);
+                    HandleCommand(null, "", command, arguments);
             }
         }
 
@@ -147,12 +147,20 @@ namespace RelentlessZero.Command
                 Array.Copy(splitCommand, 1, arguments, 0, splitCommand.Length - 1);
         }
 
-        public static void HandleCommand(Session session, string command, string[] arguments)
+        public static void Write(Session session, string room, string message)
+        {
+            if (session != null)
+                session.Player.SendRoomMessage(room, message);
+            else
+                LogManager.Write("Command Manager", message);
+        }
+
+        public static void HandleCommand(Session session, string room, string command, string[] arguments)
         {
             CommandHandler commandHandler;
             Contract.Assert(commandHandlerStore.TryGetValue(command, out commandHandler));
 
-            commandHandlerStore[command].Invoke(session, arguments);
+            commandHandlerStore[command].Invoke(session, room, arguments);
 
             if (session != null)
                 LogManager.Write("Command Manager", $"Player {session.Player.Id}({session.Player.Username}) invoked command {command}({string.Join(", ", arguments)}).");
