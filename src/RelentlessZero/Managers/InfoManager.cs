@@ -47,6 +47,7 @@ namespace RelentlessZero.Managers
         public static void Initialise()
         {
             accountInfoStore = new ConcurrentDictionary<uint, AccountInfo>();
+            accountId        = 1u;
             accountLock      = new object();
 
             UpdateAccountInfo();
