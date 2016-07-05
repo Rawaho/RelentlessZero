@@ -20,7 +20,6 @@ using RelentlessZero.Database;
 using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using RelentlessZero.Network;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -29,19 +28,25 @@ namespace RelentlessZero.Entities
     public class Avatar
     {
         [JsonProperty(PropertyName = "profileId")]
-        public uint Id { get; set; }
+        public uint Id { get; private set; }
         [JsonProperty(PropertyName = "head")]
-        public ushort Head { get; set; }
+        public ushort Head { get; private set; }
         [JsonProperty(PropertyName = "body")]
-        public ushort Body { get; set; }
+        public ushort Body { get; private set; }
         [JsonProperty(PropertyName = "leg")]
-        public ushort Leg { get; set; }
+        public ushort Leg { get; private set; }
         [JsonProperty(PropertyName = "armBack")]
-        public ushort ArmBack { get; set; }
+        public ushort ArmBack { get; private set; }
         [JsonProperty(PropertyName = "armFront")]
-        public ushort ArmFront { get; set; }
+        public ushort ArmFront { get; private set; }
 
         private bool IsAI() { return Id == 0; }
+
+        public void SetAvatar(uint id, ushort head, ushort body, ushort leg, ushort armBack, ushort armFront)
+        {
+            Id = id;
+            SetAvatar(head, body, leg, armBack, armFront);
+        }
 
         public void SetAvatar(ushort head, ushort body, ushort leg, ushort armBack, ushort armFront)
         {
@@ -61,6 +66,9 @@ namespace RelentlessZero.Entities
             Leg      = leg;
             ArmBack  = armBack;
             ArmFront = armFront;
+
+            if (!IsAI())
+                InfoManager.UpdateAvatar(this);
         }
 
         public void SetRandom()

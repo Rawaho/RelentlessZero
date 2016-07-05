@@ -81,25 +81,27 @@ namespace RelentlessZero.Entities
         public const uint MaxLevel = 2u;
 
         public ulong Id { get; }
+        public uint AccountId { get; private set; }
         public ScrollTemplate Scroll { get; }
         public byte Level { get; }
         public long Timestamp { get; }
         public ScrollStats Stats { get; } = new ScrollStats();
         public bool Tradable { get; }
-        public bool SaveNeeded { get; set; }
-
-        private uint accountId;
+        public bool SaveNeeded { get; private set; }
 
         public ScrollInstance(ScrollTemplate scrollTemplate, uint owner = 0, bool instantSave = false)
         {
             Id         = AssetManager.GetNewScrollInstanceId();
             Scroll     = scrollTemplate;
             Timestamp  = DateTime.UtcNow.Ticks;
-            accountId  = owner;
+            AccountId  = owner;
             SaveNeeded = true;
 
             if (instantSave)
                 Save();
+
+            if (AccountId != 0)
+                InfoManager.AddScroll(this);
         }
 
         public ScrollInstance(ulong id, ScrollTemplate scrollTemplate, byte level, long timestamp, bool isTradable, uint owner)
@@ -108,13 +110,13 @@ namespace RelentlessZero.Entities
             Scroll    = scrollTemplate;
             Timestamp = timestamp;
             Tradable  = isTradable;
-            accountId = owner;
+            AccountId = owner;
         }
 
         public void Save()
         {
             // only save player owned scrolls that have been modified
-            if (!SaveNeeded || accountId == 0)
+            if (!SaveNeeded || AccountId == 0)
                 return;
 
             SaveNeeded = false;
@@ -126,7 +128,7 @@ namespace RelentlessZero.Entities
                 "`heal` = VALUES(`heal`), `idolKills` = VALUES(`idolKills`), `played` = VALUES(`played`), `sacrificed` = VALUES (`sacrificed`), " +
                 "`totalGames` = VALUES(`totalGames`), `unitKills` = VALUES(`unitKills`), `wins` = VALUES(`wins`), `tradable` = VALUES(`tradable`);";
 
-            DatabaseManager.Database.Execute(query, Id, accountId, Scroll.Entry, Level, Timestamp, Stats.Damage, Stats.Destroyed, Stats.Heal,
+            DatabaseManager.Database.Execute(query, Id, AccountId, Scroll.Entry, Level, Timestamp, Stats.Damage, Stats.Destroyed, Stats.Heal,
                 Stats.IdolKills, Stats.Played, Stats.Sacrificed, Stats.TotalGames, Stats.UnitKills, Stats.Wins, Tradable);
         }
     }

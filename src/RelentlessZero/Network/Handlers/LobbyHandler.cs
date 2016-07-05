@@ -20,6 +20,7 @@ using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using RelentlessZero.Entities;
 using System;
+using System.Collections.Generic;
 
 namespace RelentlessZero.Network.Handlers
 {
@@ -182,6 +183,50 @@ namespace RelentlessZero.Network.Handlers
             }
 
             BattleManager.CreateBattle(BattleType.SP_QUICKMATCH, session.Player, deck, null, null, difficulty);
+        }
+
+        [PacketHandler("ProfilePageInfo")]
+        public static void HandleProfilePageInfo(object packet, Session session)
+        {
+            var profilePageInfoCli = (PacketProfilePageInfo)packet;
+
+            // should any checks be done here to prevent datamining profile information?
+            // maybe limit requests to friends and players in current lobby rooms?
+
+            var profileInfo = InfoManager.GetAccountInfo(profilePageInfoCli.ProfileId == 0 ? session.Player.Id : profilePageInfoCli.ProfileId);
+            if (profileInfo == null)
+            {
+                LogManager.Write("Player", $"Player {session.Player.Id} requested profile page info for non existant account {profilePageInfoCli.ProfileId}!");
+                return;
+            }
+
+            var profilePageInfo = new PacketProfilePageInfo()
+            {
+                Name            = profileInfo.Username,
+                Gold            = profileInfo.Gold,
+                Rating          = 0,
+                GamesPlayed     = 0,
+                GamesWon        = 0,
+                RankedWon       = 0,
+                LimitedWon      = 0,
+                Ranking         = 0,
+                Rank            = -1,
+                WinsForRank     = 10,
+                ScrollsCommon   = profileInfo.GetScrollRarityCount(ScrollRarity.Common),
+                ScrollsUncommon = profileInfo.GetScrollRarityCount(ScrollRarity.Uncommon),
+                ScrollsRare     = profileInfo.GetScrollRarityCount(ScrollRarity.Rare),
+                ScrollsUnique   = profileInfo.ScrollsUniqueCache,
+                LastGamePlayed  = "Never",
+                Avatar          = profileInfo.Avatar,
+                Idols           = new PacketIdolTypes(),
+
+                // TODO: handle properly
+                UnlockedAvatarTypes      = new List<uint>(),
+                UnlockedIdolTypes        = new List<uint>(),
+                UnlockedAchievementTypes = new List<uint>()
+            };
+
+            session.Send(profilePageInfo);
         }
 
         [PacketHandler("RoomChatMessage")]

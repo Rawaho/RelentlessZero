@@ -284,6 +284,7 @@
     <Compile Include="Entities\Enums\BattleType.cs" />
     <Compile Include="Entities\Enums\DamageType.cs" />
     <Compile Include="Entities\Enums\DeckFlags.cs" />
+    <Compile Include="Entities\Enums\ScrollRarity.cs" />
     <Compile Include="Entities\Enums\TileSearchType.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Managers\InfoManager.cs" />

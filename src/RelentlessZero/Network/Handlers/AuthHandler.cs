@@ -187,8 +187,6 @@ namespace RelentlessZero.Network.Handlers
 
             session.Send(profileDataInfo);
 
-            player.Avatar.Id = player.Id;
-
             // handle first login
             if (player.HasFlag(PlayerFlags.FirstLogin))
             {
@@ -196,7 +194,7 @@ namespace RelentlessZero.Network.Handlers
                     player.Scrolls.Add(new ScrollInstance(scrollTemplate, player.Id));
 
                 // default avatar pieces
-                player.Avatar.SetAvatar(33, 10, 41, 4, 15);
+                player.Avatar.SetAvatar(player.Id, 33, 10, 41, 4, 15);
                 player.Avatar.SaveAvatar();
 
                 player.RemoveFlag(PlayerFlags.FirstLogin);
@@ -211,7 +209,7 @@ namespace RelentlessZero.Network.Handlers
                     return;
                 }
 
-                player.Avatar.SetAvatar(avatarResult.Read<ushort>(0, "head"), avatarResult.Read<ushort>(0, "body"),
+                player.Avatar.SetAvatar(player.Id, avatarResult.Read<ushort>(0, "head"), avatarResult.Read<ushort>(0, "body"),
                     avatarResult.Read<ushort>(0, "leg"), avatarResult.Read<ushort>(0, "armBack"), avatarResult.Read<ushort>(0, "armFront"));
             }
 

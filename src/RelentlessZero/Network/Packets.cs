@@ -18,7 +18,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using RelentlessZero.Entities;
-using System;
+using RelentlessZero.Managers;
 using System.Collections.Generic;
 
 namespace RelentlessZero.Network
@@ -555,6 +555,53 @@ namespace RelentlessZero.Network
     {
         [JsonProperty(PropertyName = "profile")]
         public PacketProfile Profile { get; set; }
+    }
+
+    [Packet("ProfilePageInfo", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]
+    public class PacketProfilePageInfo : PacketHeader
+    {
+        [JsonProperty(PropertyName = "profileId")]
+        public uint ProfileId { get; set; }
+        [JsonProperty(PropertyName = "name")]
+        public string Name { get; set; }
+        [JsonProperty(PropertyName = "gold")]
+        public uint Gold { get; set; }
+        [JsonProperty(PropertyName = "rating")]
+        public uint Rating { get; set; }
+        [JsonProperty(PropertyName = "gamesPlayed")]
+        public uint GamesPlayed { get; set; }
+        [JsonProperty(PropertyName = "gamesWon")]
+        public uint GamesWon { get; set; }
+        [JsonProperty(PropertyName = "rankedWon")]
+        public uint RankedWon { get; set; }
+        [JsonProperty(PropertyName = "limitedWon")]
+        public uint LimitedWon { get; set; }
+        [JsonProperty(PropertyName = "ranking")]
+        public uint Ranking { get; set; }
+        [JsonProperty(PropertyName = "rank")]
+        public int Rank { get; set; }
+        [JsonProperty(PropertyName = "winsForRank")]
+        public uint WinsForRank { get; set; }
+        [JsonProperty(PropertyName = "scrollsCommon")]
+        public uint ScrollsCommon { get; set; }
+        [JsonProperty(PropertyName = "scrollsUncommon")]
+        public uint ScrollsUncommon { get; set; }
+        [JsonProperty(PropertyName = "scrollsRare")]
+        public uint ScrollsRare { get; set; }
+        [JsonProperty(PropertyName = "uniqueTypes")]
+        public uint ScrollsUnique { get; set; }
+        [JsonProperty(PropertyName = "lastGamePlayed")]
+        public string LastGamePlayed { get; set; }
+        [JsonProperty(PropertyName = "avatar")]
+        public AccountInfoAvatar Avatar { get; set; }
+        [JsonProperty(PropertyName = "idols")]
+        public PacketIdolTypes Idols { get; set; }
+        [JsonProperty(PropertyName = "unlockedAvatarTypes")]
+        public List<uint> UnlockedAvatarTypes { get; set; }
+        [JsonProperty(PropertyName = "unlockedIdolTypes")]
+        public List<uint> UnlockedIdolTypes { get; set; }
+        [JsonProperty(PropertyName = "unlockedAchievementTypes")]
+        public List<uint> UnlockedAchievementTypes { get; set; }
     }
 
     [Packet("RoomChatMessage", PacketDirection.ClientToServer | PacketDirection.ServerToClient, SessionType.Lobby)]

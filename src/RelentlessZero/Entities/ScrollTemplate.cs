@@ -168,7 +168,7 @@ namespace RelentlessZero.Entities
         [JsonConverter(typeof(StringEnumConverter))]
         public ScrollKind Kind { get; set; }
         [JsonProperty(PropertyName = "rarity")]
-        public byte Rarity { get; set; }
+        public ScrollRarity Rarity { get; set; }
         [JsonProperty(PropertyName = "hp")]
         public byte Health { get; set; }
         [JsonProperty(PropertyName = "ap")]

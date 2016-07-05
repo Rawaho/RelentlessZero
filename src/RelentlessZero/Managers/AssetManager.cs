@@ -258,7 +258,7 @@ namespace RelentlessZero.Managers
                         continue;
                     }
 
-                    scrollTemplate.Rarity         = scrollResult.Read<byte>(i, "rarity");
+                    scrollTemplate.Rarity         = scrollResult.Read<ScrollRarity>(i, "rarity");
                     scrollTemplate.Health         = scrollResult.Read<byte>(i, "health");
                     scrollTemplate.Attack         = scrollResult.Read<byte>(i, "attack");
                     scrollTemplate.Cooldown       = scrollResult.Read<sbyte>(i, "cooldown");
