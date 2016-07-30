@@ -123,7 +123,7 @@ namespace RelentlessZero.Managers
             {
                 DateTime startTime = DateTime.Now;
 
-                var accountInfoResult = DatabaseManager.Database.Select("SELECT `id`, `username`, `adminRole`, `gold`, `shards`, `rating` FROM `account_info`");
+                var accountInfoResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.AccountSelectAll);
                 Contract.Assert(accountInfoResult != null);
 
                 uint accountCount = 0u;
@@ -144,7 +144,7 @@ namespace RelentlessZero.Managers
 
                 if (full)
                 {
-                    var accountAvatarResult = DatabaseManager.Database.Select("SELECT `id`, `head`, `body`, `leg`, `armBack`, `armFront` FROM `account_avatar`");
+                    var accountAvatarResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.AvatarSelectAll);
                     Contract.Assert(accountAvatarResult != null);
 
                     for (int i = 0; i < accountAvatarResult.Count; i++)
@@ -154,7 +154,7 @@ namespace RelentlessZero.Managers
                             accountAvatarResult.Read<ushort>(i, "leg"), accountAvatarResult.Read<ushort>(i, "armBack"), accountAvatarResult.Read<ushort>(i, "armFront"));
                     }
 
-                    var accountScrollResult = DatabaseManager.Database.Select("SELECT `accountId`, `id`, `scrollEntry` FROM `scroll_instance`");
+                    var accountScrollResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.ScrollSelectAll);
                     Contract.Assert(accountScrollResult != null);
 
                     for (int i = 0; i < accountScrollResult.Count; i++)

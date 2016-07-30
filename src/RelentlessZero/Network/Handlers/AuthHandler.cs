@@ -18,9 +18,9 @@
 using RelentlessZero.Cryptography;
 using RelentlessZero.Database;
 using RelentlessZero.Entities;
-using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using System;
+using System.Diagnostics.Contracts;
 
 namespace RelentlessZero.Network.Handlers
 {
@@ -50,7 +50,6 @@ namespace RelentlessZero.Network.Handlers
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                LogManager.Write("Authentication", "Session {0} sent invalid account credentials (empty or whitespace)!", session.IpAddress);
                 session.SendFatalFailPacket(packetName, "An internal error has occurred!");
                 return;
             }
@@ -58,10 +57,10 @@ namespace RelentlessZero.Network.Handlers
             var authStatus = AuthStatus.InvalidCredentials;
 
             // retrieve account information
-            var accountResult = DatabaseManager.Database.Select("SELECT id, password, salt, adminRole, gold, shards, rating, flags FROM account_info WHERE username = ?", username);
-            if (accountResult == null)
-                authStatus = AuthStatus.InternalError;
-            else if (accountResult.Count != 0)
+            var accountResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.AccountSelect, username);
+            Contract.Assert(accountResult != null);
+
+            if (accountResult.Count != 0)
                 authStatus = GetAuthStatus(accountResult.Read<uint>(0, "id"), accountResult.Read<string>(0, "password"), accountResult.Read<string>(0, "salt"), username, password);
 
             if (authStatus != AuthStatus.Ok)
@@ -124,11 +123,10 @@ namespace RelentlessZero.Network.Handlers
                 return AuthStatus.AlreadySignedIn;
 
             // check temporary and permanent ban information
-            SqlResult banResult = DatabaseManager.Database.Select("SELECT id, timestamp FROM account_ban WHERE id = ?", accountId);
-            if (banResult == null)
-                return AuthStatus.InternalError;
+            var banResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.BanSelect, accountId);
+            Contract.Assert(banResult != null);
 
-            if (banResult.Count == 1)
+            if (banResult.Count != 0)
             {
                 uint currentTimestamp = Helper.GetUnixTime();
                 uint banTimestamp = banResult.Read<uint>(0, "timestamp");
@@ -140,7 +138,7 @@ namespace RelentlessZero.Network.Handlers
                     return AuthStatus.BannedTemporary;
 
                 if (banTimestamp <= currentTimestamp)
-                    DatabaseManager.Database.Execute("DELETE FROM account_ban WHERE id = ?", accountId);
+                    DatabaseManager.ExecutePreparedStatement(PreparedStatement.DeckDelete, accountId);
             }
 
             return AuthStatus.Ok;
@@ -202,8 +200,10 @@ namespace RelentlessZero.Network.Handlers
             else
             {
                 // load avatar information
-                SqlResult avatarResult = DatabaseManager.Database.Select("SELECT `head`, `body`, `leg`, `armBack`, `armFront` FROM `account_avatar` WHERE `id` = ?", player.Id);
-                if (avatarResult == null || avatarResult.Count == 0)
+                var avatarResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.AvatarSelect, player.Id);
+                Contract.Assert(avatarResult != null);
+
+                if (avatarResult.Count == 0)
                 {
                     session.SendFatalFailPacket("JoinLobby", "Failed to lookup account avatar information!");
                     return;

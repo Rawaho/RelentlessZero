@@ -113,7 +113,7 @@ namespace RelentlessZero.Entities
             AccountId = owner;
         }
 
-        public void Save()
+        public void Save(DatabaseManager.Transaction transaction = null)
         {
             // only save player owned scrolls that have been modified
             if (!SaveNeeded || AccountId == 0)
@@ -121,15 +121,12 @@ namespace RelentlessZero.Entities
 
             SaveNeeded = false;
 
-            string query = "INSERT INTO `scroll_instance` (`id`, `accountId`, `scrollEntry`, `level`, `timestamp`, `damage`, `destroyed`, `heal`, " +
-                "`idolKills`, `played`, `sacrificed`, `totalGames`, `unitKills`, `wins`, `tradable`) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `accountId` = VALUES(`accountId`), `scrollEntry` = VALUES(`scrollEntry`), " +
-                "`level` = VALUES(`level`), `timestamp` = VALUES(`timestamp`), `damage` = VALUES(`damage`), `destroyed` = VALUES (`destroyed`), " +
-                "`heal` = VALUES(`heal`), `idolKills` = VALUES(`idolKills`), `played` = VALUES(`played`), `sacrificed` = VALUES (`sacrificed`), " +
-                "`totalGames` = VALUES(`totalGames`), `unitKills` = VALUES(`unitKills`), `wins` = VALUES(`wins`), `tradable` = VALUES(`tradable`);";
-
-            DatabaseManager.Database.Execute(query, Id, AccountId, Scroll.Entry, Level, Timestamp, Stats.Damage, Stats.Destroyed, Stats.Heal,
-                Stats.IdolKills, Stats.Played, Stats.Sacrificed, Stats.TotalGames, Stats.UnitKills, Stats.Wins, Tradable);
+            if (transaction != null)
+                transaction.AddStatement(PreparedStatement.ScrollInsert, Id, AccountId, Scroll.Entry, Level, Timestamp, Stats.Damage, Stats.Destroyed, Stats.Heal,
+                    Stats.IdolKills, Stats.Played, Stats.Sacrificed, Stats.TotalGames, Stats.UnitKills, Stats.Wins, Tradable);
+            else
+                DatabaseManager.ExecutePreparedStatement(PreparedStatement.ScrollInsert, Id, AccountId, Scroll.Entry, Level, Timestamp, Stats.Damage, Stats.Destroyed, Stats.Heal,
+                    Stats.IdolKills, Stats.Played, Stats.Sacrificed, Stats.TotalGames, Stats.UnitKills, Stats.Wins, Tradable);
         }
     }
 }

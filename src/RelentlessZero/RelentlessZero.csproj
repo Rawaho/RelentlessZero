@@ -265,6 +265,7 @@
     <Compile Include="Cryptography\Rsa.cs" />
     <Compile Include="Cryptography\Sha.cs" />
     <Compile Include="Database\DatabaseManager.cs" />
+    <Compile Include="Database\PreparedStatements.cs" />
     <Compile Include="Database\SqlResult.cs">
       <SubType>Component</SubType>
     </Compile>

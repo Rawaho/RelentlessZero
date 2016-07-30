@@ -33,8 +33,8 @@ namespace RelentlessZero
             Console.Title = "RelentlessZero - Server Version: " + ConfigManager.Config.Server.Version;
             Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
-            DatabaseManager.Database.Initialise(ConfigManager.Config.Network.MySql.Host, ConfigManager.Config.Network.MySql.Port,
-                ConfigManager.Config.Network.MySql.Username, ConfigManager.Config.Network.MySql.Password, ConfigManager.Config.Network.MySql.Database);
+            var databaseInfo = ConfigManager.Config.Network.MySql;
+            DatabaseManager.Initialise(databaseInfo.Host, databaseInfo.Port, databaseInfo.Username, databaseInfo.Password, databaseInfo.Database);
 
             AssetManager.LoadAssets();
             InfoManager.Initialise();

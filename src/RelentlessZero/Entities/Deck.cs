@@ -87,20 +87,20 @@ namespace RelentlessZero.Entities
 
         public void Save()
         {
-            // save/update deck information
-            DatabaseManager.Database.Execute("INSERT INTO `account_deck` (`id`, `accountId`, `name`, `timestamp`, `flags`) VALUES(?, ?, ?, ?, ?)" +
-                "ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `timestamp` = VALUES(`timestamp`), `flags` = VALUES(`flags`)", Id, owner, Name, Timestamp, Flags);
+            var transaction = new DatabaseManager.Transaction();
+            transaction.AddStatement(PreparedStatement.DeckInsert, Id, owner, Name, Timestamp, Flags);
+            transaction.AddStatement(PreparedStatement.DeckScrollDelete, Id);
 
-            // save deck scroll information
-            DatabaseManager.Database.Execute("DELETE FROM `account_deck_scroll` WHERE `id` = ?", Id);
             foreach (var scroll in Scrolls)
-                DatabaseManager.Database.Execute("INSERT INTO `account_deck_scroll` (`id`, `accountId`, `scrollInstance`) VALUES(?, ?, ?);", Id, owner, scroll.Id);
+                transaction.AddStatement(PreparedStatement.DeckScrollInsert, Id, owner, scroll.Id);
+
+            transaction.Commit();
         }
 
         public void Delete()
         {
             // foreign key will remove scroll information for deck
-            DatabaseManager.Database.Execute("DELETE FROM `account_deck` WHERE `id` = ? AND `accountId` = ?", Id, owner);
+            DatabaseManager.ExecutePreparedStatement(PreparedStatement.DeckDelete, Id, owner);
         }
 
         public void CalculateAge()

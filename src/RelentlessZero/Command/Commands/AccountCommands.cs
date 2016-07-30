@@ -48,9 +48,7 @@ namespace RelentlessZero.Command
 
             string passwordSalt = Sha.Hash(Path.GetRandomFileName()).ToLower();
             string passwordHash = Sha.Hash(password + passwordSalt, true).ToLower();
-
-            DatabaseManager.Database.Execute("INSERT INTO `account_info` (`id`, `username`, `password`, `salt`, `adminRole`) VALUES (?, ?, ?, ?, ?);",
-                InfoManager.GetNewAccountId(), username, passwordHash, passwordSalt, adminRole);
+            DatabaseManager.ExecutePreparedStatement(PreparedStatement.AccountInsert, InfoManager.GetNewAccountId(), username, passwordHash, passwordSalt, adminRole);
 
             InfoManager.UpdateAccountInfo();
 

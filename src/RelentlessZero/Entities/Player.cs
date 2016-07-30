@@ -21,6 +21,7 @@ using RelentlessZero.Logging;
 using RelentlessZero.Managers;
 using RelentlessZero.Network;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace RelentlessZero.Entities
@@ -85,14 +86,7 @@ namespace RelentlessZero.Entities
                 AssetManager.GetRandomAvatarPart(AvatarPartName.ARM_BACK, AvatarPartRarity.COMMON, sex));
         }
 
-        public void SaveAvatar()
-        {
-            string query = "INSERT INTO `account_avatar` (`id`, `head`, `body`, `leg`, `armBack`, `armFront`) VALUES(?, ?, ?, ?, ?, ?) " +
-                    "ON DUPLICATE KEY UPDATE `head` = VALUES(`head`), `body` = VALUES(`body`), `leg` = VALUES(`leg`), " + 
-                    "`armBack` = VALUES(`armBack`), `armFront` = VALUES(`armFront`);";
-
-            DatabaseManager.Database.Execute(query, Id, Head, Body, Leg, ArmBack, ArmFront);
-        }
+        public void SaveAvatar() { DatabaseManager.ExecutePreparedStatement(PreparedStatement.AvatarInsert, Id, Head, Body, Leg, ArmBack, ArmFront); }
     }
 
     public class Player
@@ -126,8 +120,11 @@ namespace RelentlessZero.Entities
             foreach (string roomName in CurrentRooms.ToArray())
                 LobbyManager.RemovePlayer(roomName, this);
 
+            var transaction = new DatabaseManager.Transaction();
             foreach (var scroll in Scrolls)
                 scroll.Save();
+
+            transaction.Commit();
 
             SavePlayer();
         }
@@ -183,93 +180,89 @@ namespace RelentlessZero.Entities
 
         public void LoadScrolls()
         {
-            var scrollInstanceResult = DatabaseManager.Database.Select("SELECT `id`, `scrollEntry`, `level`, `timestamp`, `damage`, `destroyed`, `heal`," +
-                "`idolKills`, `played`, `sacrificed`,`totalGames`, `unitKills`, `wins`, `tradable` FROM `scroll_instance` WHERE `accountId` = ?", Id);
+            var scrollInstanceResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.ScrollSelect, Id);
+            Contract.Assert(scrollInstanceResult != null);
 
-            if (scrollInstanceResult != null)
+            for (int i = 0; i < scrollInstanceResult.Count; i++)
             {
-                for (int i = 0; i < scrollInstanceResult.Count; i++)
+                ulong scrollId     = scrollInstanceResult.Read<ulong>(i, "id");
+                ushort scrollEntry = scrollInstanceResult.Read<ushort>(i, "scrollEntry");
+
+                // link scroll template with scroll instance
+                var scrollTemplate = AssetManager.GetScrollTemplate(scrollEntry);
+                if (scrollTemplate == null)
                 {
-                    ulong scrollId     = scrollInstanceResult.Read<ulong>(i, "id");
-                    ushort scrollEntry = scrollInstanceResult.Read<ushort>(i, "scrollEntry");
-
-                    // link scroll template with scroll instance
-                    var scrollTemplate = AssetManager.GetScrollTemplate(scrollEntry);
-                    if (scrollTemplate == null)
-                    {
-                        LogManager.Write("Player", $"Scroll instance {scrollId} has invalid scroll entry {scrollEntry}! Skipping.");
-                        continue;
-                    }
-
-                    var scrollInstance = new ScrollInstance(scrollId, scrollTemplate, scrollInstanceResult.Read<byte>(i, "level"),
-                        scrollInstanceResult.Read<long>(i, "timestamp"), scrollInstanceResult.Read<bool>(i, "tradable"), Id);
-
-                    if (scrollInstance.Level > ScrollInstance.MaxLevel)
-                    {
-                        LogManager.Write("Player", $"Scroll instance {scrollInstance.Id} has invalid scroll level {scrollInstance.Level}! Skipping.");
-                        continue;
-                    }
-
-                    // tracked scroll stats
-                    scrollInstance.Stats.Damage     = scrollInstanceResult.Read<uint>(i, "damage");
-                    scrollInstance.Stats.Destroyed  = scrollInstanceResult.Read<uint>(i, "destroyed");
-                    scrollInstance.Stats.Heal       = scrollInstanceResult.Read<uint>(i, "heal");
-                    scrollInstance.Stats.IdolKills  = scrollInstanceResult.Read<uint>(i, "idolKills");
-                    scrollInstance.Stats.Played     = scrollInstanceResult.Read<uint>(i, "played");
-                    scrollInstance.Stats.Sacrificed = scrollInstanceResult.Read<uint>(i, "sacrificed");
-                    scrollInstance.Stats.TotalGames = scrollInstanceResult.Read<uint>(i, "totalGames");
-                    scrollInstance.Stats.UnitKills  = scrollInstanceResult.Read<uint>(i, "unitKills");
-                    scrollInstance.Stats.Wins       = scrollInstanceResult.Read<uint>(i, "wins");
-
-                    Scrolls.Add(scrollInstance);
+                    LogManager.Write("Player", $"Scroll instance {scrollId} has invalid scroll entry {scrollEntry}! Skipping.");
+                    continue;
                 }
+
+                var scrollInstance = new ScrollInstance(scrollId, scrollTemplate, scrollInstanceResult.Read<byte>(i, "level"),
+                    scrollInstanceResult.Read<long>(i, "timestamp"), scrollInstanceResult.Read<bool>(i, "tradable"), Id);
+
+                if (scrollInstance.Level > ScrollInstance.MaxLevel)
+                {
+                    LogManager.Write("Player", $"Scroll instance {scrollInstance.Id} has invalid scroll level {scrollInstance.Level}! Skipping.");
+                    continue;
+                }
+
+                // tracked scroll stats
+                scrollInstance.Stats.Damage     = scrollInstanceResult.Read<uint>(i, "damage");
+                scrollInstance.Stats.Destroyed  = scrollInstanceResult.Read<uint>(i, "destroyed");
+                scrollInstance.Stats.Heal       = scrollInstanceResult.Read<uint>(i, "heal");
+                scrollInstance.Stats.IdolKills  = scrollInstanceResult.Read<uint>(i, "idolKills");
+                scrollInstance.Stats.Played     = scrollInstanceResult.Read<uint>(i, "played");
+                scrollInstance.Stats.Sacrificed = scrollInstanceResult.Read<uint>(i, "sacrificed");
+                scrollInstance.Stats.TotalGames = scrollInstanceResult.Read<uint>(i, "totalGames");
+                scrollInstance.Stats.UnitKills  = scrollInstanceResult.Read<uint>(i, "unitKills");
+                scrollInstance.Stats.Wins       = scrollInstanceResult.Read<uint>(i, "wins");
+
+                Scrolls.Add(scrollInstance);
             }
         }
 
         public void LoadDecks()
         {
-            var deckResult = DatabaseManager.Database.Select("SELECT `id`, `name`, `timestamp`, `flags` FROM `account_deck` WHERE `accountId` = ?", Id);
-            if (deckResult != null)
-            {
-                for (int i = 0; i < deckResult.Count; i++)
-                {
-                    var deck = new Deck(Id, deckResult.Read<uint>(i, "id"), deckResult.Read<string>(i, "name"),
-                        deckResult.Read<ulong>(i, "timestamp"), deckResult.Read<DeckFlags>(i, "flags"));
+            var deckResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.DeckSelect, Id);
+            Contract.Assert(deckResult != null);
 
-                    // get all scrolls associated with deck
-                    var deckScrollResult = DatabaseManager.Database.Select("SELECT `scrollInstance` FROM `account_deck_scroll` WHERE `id` = ?", deck.Id);
-                    if (deckScrollResult == null)
+            for (int i = 0; i < deckResult.Count; i++)
+            {
+                var deck = new Deck(Id, deckResult.Read<uint>(i, "id"), deckResult.Read<string>(i, "name"),
+                    deckResult.Read<ulong>(i, "timestamp"), deckResult.Read<DeckFlags>(i, "flags"));
+
+                // get all scrolls associated with deck
+                var deckScrollResult = DatabaseManager.SelectPreparedStatement(PreparedStatement.DeckScrollSelect, deck.Id);
+                if (deckScrollResult == null)
+                {
+                    LogManager.Write("Player", "Deck instance {0} has no scrolls associated with it! Skipping.", deck.Id);
+                    continue;
+                }
+
+                for (int j = 0; j < deckScrollResult.Count; j++)
+                {
+                    uint scrollId      = deckScrollResult.Read<uint>(j, "scrollInstance");
+                    var scrollInstance = GetScroll(scrollId);
+
+                    if (scrollInstance == null)
                     {
-                        LogManager.Write("Player", "Deck instance {0} has no scrolls associated with it! Skipping.", deck.Id);
+                        LogManager.Write("Player", "Scroll instance {0} in deck {1} doesn't belong to player or doesn't exist! Skipping.", scrollId, deck.Id);
                         continue;
                     }
 
-                    for (int j = 0; j < deckScrollResult.Count; j++)
-                    {
-                        uint scrollId      = deckScrollResult.Read<uint>(j, "scrollInstance");
-                        var scrollInstance = GetScroll(scrollId);
+                    deck.Scrolls.Add(scrollInstance);
+                }
 
-                        if (scrollInstance == null)
-                        {
-                            LogManager.Write("Player", "Scroll instance {0} in deck {1} doesn't belong to player or doesn't exist! Skipping.", scrollId, deck.Id);
-                            continue;
-                        }
-
-                        deck.Scrolls.Add(scrollInstance);
-                    }
-
-                    if (deck.Scrolls.Count >= 1)
-                    {
-                        deck.CalculateResources();
-                        Decks.Add(deck);
-                    }
+                if (deck.Scrolls.Count >= 1)
+                {
+                    deck.CalculateResources();
+                    Decks.Add(deck);
                 }
             }
         }
 
         public void SavePlayer()
         {
-            DatabaseManager.Database.Execute("UPDATE `account_info` SET `gold` = ?, `shards` = ?, `rating` = ?, `flags` = ?", Gold, Shards, Rating, Flags);
+            DatabaseManager.ExecutePreparedStatement(PreparedStatement.AccountUpdate, Gold, Shards, Rating, Flags);
         }
     }
 }
