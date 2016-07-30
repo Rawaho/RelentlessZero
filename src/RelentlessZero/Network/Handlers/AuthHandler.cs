@@ -74,7 +74,7 @@ namespace RelentlessZero.Network.Handlers
             {
                 Id        = accountResult.Read<uint>(0, "id"),
                 Session   = session,
-                Username  = username,
+                Username  = accountResult.Read<string>(0, "username"),
                 AdminRole = accountResult.Read<AdminRole>(0, "adminRole"),
                 Gold      = accountResult.Read<uint>(0, "gold"),
                 Shards    = accountResult.Read<uint>(0, "shards"),

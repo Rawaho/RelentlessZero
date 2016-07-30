@@ -56,7 +56,7 @@ namespace RelentlessZero.Database
     {
         private static void InitialisePreparedStatements()
         {
-            AddPreparedStatement(PreparedStatement.AccountSelect, "SELECT id, password, salt, adminRole, gold, shards, rating, flags FROM account_info WHERE username = ?;", MySqlDbType.VarChar);
+            AddPreparedStatement(PreparedStatement.AccountSelect, "SELECT `id`, `username`, `password`, `salt`, `adminRole`, `gold`, `shards`, `rating`, `flags` FROM `account_info` WHERE `username` = ?;", MySqlDbType.VarChar);
             AddPreparedStatement(PreparedStatement.AccountUpdate, "UPDATE `account_info` SET `gold` = ?, `shards` = ?, `rating` = ?, `flags` = ?", MySqlDbType.UInt32, MySqlDbType.UInt32, MySqlDbType.UInt16, MySqlDbType.UInt16);
             AddPreparedStatement(PreparedStatement.AccountInsert, "INSERT INTO `account_info` (`id`, `username`, `password`, `salt`, `adminRole`) VALUES (?, ?, ?, ?, ?);",
                 MySqlDbType.UInt32, MySqlDbType.VarChar, MySqlDbType.VarChar, MySqlDbType.VarChar, MySqlDbType.UByte);
